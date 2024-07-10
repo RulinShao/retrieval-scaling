@@ -1,11 +1,11 @@
-name: contriever_pythia
+name: default
 
 tasks:
   datastore:
     embedding: false
     index: false
   eval: 
-    task_name: perplexity  # task name is used to load the eval data
+    task_name: perplexity  # task name is used to load the eval data. Options:["perplexity", "lm-eval"].
     search: false  # search top-k offline
     merge_search: false  # merge searched results from multiple sources
     inference: false  # run inference with LM
@@ -28,10 +28,10 @@ datastore:
   embedding:
     raw_data_path: ${datastore.raw_data_path}
     shard_ids: [0]
-    num_shards: ???
+    num_shards: 1
     chunk_size: ${datastore.chunk_size}
     keep_last_chunk: true
-    passages_dir: /gscratch/zlab/rulins/data/scaling_out/passages/${datastore.domain}/${datastore.embedding.num_shards}-shards
+    passages_dir: scaling_out/passages/${datastore.domain}/${datastore.embedding.num_shards}-shards
 
     per_gpu_batch_size: 512
     passage_maxlength: ${datastore.chunk_size}  # need to set to a larger num than chunk size
@@ -43,20 +43,15 @@ datastore:
     normalize_text: False
 
     prefix: "passages"
-    embedding_dir: /gscratch/zlab/rulins/data/scaling_out/embeddings/${model.datastore_encoder}/${datastore.domain}/${datastore.embedding.num_shards}-shards
+    embedding_dir: scaling_out/embeddings/${model.datastore_encoder}/${datastore.domain}/${datastore.embedding.num_shards}-shards
     use_saved_if_exists: true
-    # local_rank: -1
-    # global_rank: 0
-    # world_size: -1
-    # main_port: 12345
-    # main_addr: "localhost"
 
   index:
     raw_data_path: ${datastore.raw_data_path}
     chunk_size: ${datastore.chunk_size}
     passages_embeddings: ${datastore.embedding.embedding_dir}/*.pkl
     num_subsampled_embedding_files: 1    # Number of subsampled embeddings, use all if pass -1, not supported yet, assume use all embeddings in the dir
-    index_shard_ids: null  # idx of passages included in each index; [0, 1, 2] means build a single index over psg-0&1&2; [[0], [1,2]] means build 1 index for psg-0 and 1 index for psg-1&2.
+    index_shard_ids: [[0]]  # idx of passages included in each index; [0, 1, 2] means build a single index over psg-0&1&2; [[0], [1,2]] means build 1 index for psg-0 and 1 index for psg-1&2.
     save_or_load_index: True
     no_fp16: False
     index_type: PQ    # PQ, PQIVF (PQ degrades to flat when n_subquantizers is 0)
@@ -96,7 +91,7 @@ evaluation:
   concate_k: 0    # Number of retrieved passages for concatenation, 0 means LM-only
   max_retrieval_len: 1024
   calibration_out_dir: null
-  eval_output_dir: /gscratch/zlab/rulins/data/scaling_out/retrieved_results/${model.datastore_encoder}/${datastore.domain}_datastore-${datastore.chunk_size}_chunk_size-1of${datastore.embedding.num_shards}_shards/top_${evaluation.search.n_docs}
+  eval_output_dir: scaling_out/retrieved_results/${model.datastore_encoder}/${datastore.domain}_datastore-${datastore.chunk_size}_chunk_size-1of${datastore.embedding.num_shards}_shards/top_${evaluation.search.n_docs}
   results_only_log_file: ???
   debug_mode: false
   decontamination: false
