@@ -1,0 +1,4 @@
+"fewshot_split": "nld_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_nld_Latn"
+"test_split": "nld_Latn"

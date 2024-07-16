@@ -1,0 +1,4 @@
+"fewshot_split": "sot_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_sot_Latn"
+"test_split": "sot_Latn"

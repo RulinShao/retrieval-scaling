@@ -1,0 +1,4 @@
+"fewshot_split": "ben_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_ben_Latn"
+"test_split": "ben_Latn"

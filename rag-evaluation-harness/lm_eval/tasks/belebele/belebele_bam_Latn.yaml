@@ -1,0 +1,4 @@
+"fewshot_split": "bam_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_bam_Latn"
+"test_split": "bam_Latn"

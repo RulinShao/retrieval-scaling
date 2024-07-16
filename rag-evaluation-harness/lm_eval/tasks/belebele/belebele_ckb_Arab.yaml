@@ -1,0 +1,4 @@
+"fewshot_split": "ckb_Arab"
+"include": "_default_template_yaml"
+"task": "belebele_ckb_Arab"
+"test_split": "ckb_Arab"

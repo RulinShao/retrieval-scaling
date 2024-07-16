@@ -1,0 +1,4 @@
+"fewshot_split": "ibo_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_ibo_Latn"
+"test_split": "ibo_Latn"

@@ -2,149 +2,143 @@
 
 Code and data for paper "Scaling Retrieval-Based Langauge Models with a Trillion-Token Datastore".
 
-README still work in progress. Stay tuned!
+[[Website](https://retrievalscaling.github.io)][[Paper](https://drive.google.com/file/d/1FDtWyJTwgyk-CRg6L8Syi6WEuBZrgytE/view)]
 
-## Overview
-This repository supports:
+**Datastores:** [🤗 MassiveDS-1.4T](https://huggingface.co/datasets/rulins/MassiveDS-1.4T) | [🤗 MassiveDS-140B](https://huggingface.co/datasets/rulins/MassiveDS-140B)
 
-1. Easy development and evaluation for retrieval-based language models (LMs). You can define different experiments by simply modifying one yaml configuration file.
-2. Conduct efficient datastore scaling study with retrieval-based LMs.
+
+<img src=images/scaling_gif.gif width="666" alt="Scaling overview.">
+
+# Overview
+This codebase contains:
+
+1. Easy development and evaluation for retrieval-based language models (LMs)---run all experiments with one YAML file ([Quick Start](#quick-start)).
+2. Our efficient MassiveDS pipeline for affordable datastore scaling study with retrieval-based LMs ([Advanced Usage](#advanced-usage)).
+3. A comprehensive evaluation suite for retrieval-based LMs ([Evaluation](#evaluation)| [RAG-Evaluation-Harnesses](https://github.com/RulinShao/RAG-evaluation-harnesses)).
+
 
 ## Installation
-
 Install dependent Python libraries by running the command below.
 
 ```bash
+# clone the repo
 git clone https://github.com/RulinShao/retrieval-scaling.git
 cd retrieval-scaling
-pip install -r requirements.txt
+
+# create a new conda environment and install dependencies
+conda env create -f environment.yml
 ```
+
+
+## Quick Start
+For a quick start, we provide a script that constructs a datastore using data in [FineWeb-Edu-1MT](https://huggingface.co/datasets/rulins/FineWeb-Edu-1MT) and evaluates it with LM [Pythia-1B](https://huggingface.co/EleutherAI/pythia-1b). 
+
+**Download example data**
+
+To start, downloaded the example data and save it in `raw_data/`.
+
+```bash
+mkdir -p raw_data
+wget -O raw_data/fineweb-edu-1m.jsonl https://huggingface.co/datasets/rulins/FineWeb-Edu-1MT/resolve/main/fineweb-edu-1M.jsonl?download=true
+```
+
+**Construct a Datastore**
+
+Below command constructs a datastore using [Contriever-MSMACRO](https://huggingface.co/facebook/contriever-msmarco) as the retriever.
+You can set the retriever to others that are supported in HuggingFace or SentenceTransformers through `model.datastore_encoder`. We also support sparse retriever BM25, to use which, pass `model.sparse_retriever=bm25`. 
+
+```bash
+PYTHONPATH=.  python ric/main_ric.py --config-name example_config
+```
+<!-- 1B token: 3518123 passages; 47 minutes; -->
+<!-- Note: the datastore construction takes X minutes on 1 L40 GPU. If you want to quickly go through the code, please parallelize the job or further subsample the raw data. -->
+
+**Evaluate Perplexity**
+
+Next, we provide an example script to evaluate the perplexity on C4 data. You can use your own eval data by setting `evaluation.data.eval_data` to the path to your own JSONL file. 
+```bash
+PYTHONPATH=.  python ric/main_ric.py --config-name example_config \
+  tasks.eval.task_name=perplexity \
+  tasks.eval.search=true \
+  tasks.eval.inference=true
+```
+
+The evaluation result will be printed in terminal and saved in `scaling_out/test_c4_ppl.log`.
+
+**Evaluate Downstream Task**
+
+We adapted [lm-evaluation-harnesses](https://github.com/EleutherAI/lm-evaluation-harness) to support RAG evaluation, which we developped in [RAG-evaluation-harnesses](https://github.com/RulinShao/RAG-evaluation-harnesses). We refer to [Downstream Evaluation](#downstream-evaluation) for more details. Below is an example to run evaluation on Natural Questions. 
+
+First, install our RAG evaluation package.
+```bash
+git clone https://github.com/RulinShao/rag-evaluation-harness.git
+pip install -e rag-evaluation-harness
+```
+
+Then, run search over the task quries.
+```bash
+lm_eval --tasks "nq_open" --inputs_save_dir "examples" --save_inputs_only
+
+PYTHONPATH=.  python ric/main_ric.py --config-name example_config \
+  tasks.eval.task_name=lm-eval \
+  tasks.eval.search=true \
+  evaluation.domain=nq_open \
+  evaluation.data.eval_data=examples/nq_open.jsonl
+```
+
+Finally, evaluate with a LM.
+```bash
+RETRIEVED_FILE=scaling_out/retrieved_results/facebook/contriever-msmarco/fineweb_edu_1m_datastore-256_chunk_size-1of1_shards/top_3/0/nq_open_retrieved_results.jsonl  # where retrieved documents are saved
+lm_eval --model hf \
+  --model_args pretrained="EleutherAI/pythia-1b" \
+  --tasks nq_open \
+  --batch_size auto \
+  --inputs_save_dir examples \
+  --retrieval_file $RETRIEVED_FILE \
+  --concat_k 3 \
+  --num_fewshot 5 \
+  --results_only_save_path scaling_out/nq_open-5shots.jsonl
+```
+The evaluation results will be printed in a table in the terminal as saved in `scaling_out/nq_open-5shots.jsonl`.
+
+
 
 ## Datastore Release
-We release the full MassiveDS datastore and its 10% subsampled version in the HuggingFace Hub:
+We release the **data**, **embedding**, and **index** of our MassiveDS datastore, along with its 10% subsampled version, on HuggingFace:
 
-* **Full MassiveDS**: https://huggingface.co/datasets/rulins/MassiveDS-1.4T
-* **10% Subsampled**: https://huggingface.co/datasets/rulins/MassiveDS-140B
-
-
-# Quick Start
-We support running scaling experiments with a unified hydra ymal configuration which is decomposed into stages. For example, you can either use the default configuration file [ric/conf/default.yaml](https://github.com/RulinShao/retrieval-scaling/blob/main/ric/conf/default.yaml) and pass self-defined arguments through command lines, or create a personalized configuration so you do not need to pass at run time. We provide example scripts to use the default configuration yaml file to run datastore construction and evaluation on DPR Wikipedia data.
-
-To begin, we assume you downloaded the DPR Wikipedia data to path `DS_RAW_DATA`
-
-## Example Scripts
-### Encode Documents
-```bash
-datastore_domain=dpr_wiki
-datastore_raw_data_path=$DS_RAW_DATA
-num_shards=1
-
-PYTHONPATH=.  python ric/main_ric.py \
-  --config-name=default \
-  tasks.datastore.embedding=true \
-  datastore.domain=$datastore_domain \
-  datastore.raw_data_path=$datastore_raw_data_path \
-  datastore.embedding.num_shards=$num_shards \
-  datastore.embedding.shard_ids=[0]
-```
-
-### Build Index
-```bash
-PYTHONPATH=.  python ric/main_ric.py \
-  --config-name=default \
-  tasks.datastore.index=true \
-  datastore.domain=$datastore_domain \
-  datastore.raw_data_path=$datastore_raw_data_path \
-  datastore.embedding.num_shards=$num_shards \
-  datastore.index.index_shard_ids=[[0]]
-
-```
-
-### Search Top-k Given a JSONL File
-We show the search for perplexity evaluation for example. Assume the queries are saved in `$EVAL_DOMAIN.jsonl` in `EVAL_DATA_DIR`.
-
-```bash
-N_DOCS=100  # number of retrieved documents per query
-N_EVAL_SAMPLES=10000  # maximum number of evaluation samples
-
-PYTHONPATH=.  python ric/main_ric.py \
-    --config-name largest_default \
-    tasks.eval.task_name=perplexity \
-    tasks.eval.search=true \
-    datastore.domain=$datastore_domain \
-    datastore.embedding.num_shards=$num_shards \
-    datastore.embedding.shard_ids=[] \
-    datastore.index.index_shard_ids=[[0]] \
-    evaluation.domain=$EVAL_DOMAIN \
-    evaluation.data.eval_data=$EVAL_DATA_DIR/$EVAL_DOMAIN.jsonl \
-    evaluation.search.n_docs=$N_DOCS \
-    evaluation.data.num_eval_samples=$N_EVAL_SAMPLES
-```
+* **10% Subsampled MassiveDS**: https://huggingface.co/datasets/rulins/MassiveDS-140B
+* **Full MassiveDS (uploading)**: https://huggingface.co/datasets/rulins/MassiveDS-1.4T
 
 
-### Evaluate Perplexity
-```bash
-MODEL_NAME=llama2-7b
-MODEL=meta-llama/Llama-2-7b-hf
-EVAL_FILE=$EVAL_DATA_DIR/$EVAL_DOMAIN.jsonl
-LOG_DIR=out
-mkdir -p $LOG_DIR
-PYTHONPATH=.  python ric/main_ric.py \
-    --config-name default \
-    tasks.eval.task_name=perplexity \
-    tasks.eval.inference=true \
-    evaluation.search.merge_multi_source_results=true \
-    evaluation.search.n_docs=$N_DOCS \
-    evaluation.concate_k=3 \
-    evaluation.domain=$EVAL_DOMAIN \
-    evaluation.data.eval_data=$EVAL_FILE \
-    datastore.domain=merged_0.1_subsampled \
-    datastore.embedding.num_shards=8 \
-    datastore.index.index_shard_ids=[] \
-    evaluation.search.merged_path=${PATH_TO_MERGE_DIR}/${EVAL_DOMAIN}.jsonl \
-    evaluation.results_only_log_file=$LOG_DIR/${MODEL_NAME}_ppl.log \
-    model.lm_model=$MODEL \
-    evaluation.decontamination=true \
-    evaluation.contamination_threshold=32 \
-    evaluation.decontamination_method=longest
-```
 
-# Evaluate Downstream Tasks Using LM-eval
-Install our lm-eval repo if haven't:
-```bash
-git clone https://github.com/RulinShao/rag-evaluation-harness
-cd RAG-evaluation-harness
-pip install -e .
-```
-You can use this repo to prepare the retrieved documents, take the setting with a wikipeida datastore and the TriviaQA queries for example:
-```bash
-TASK_NAME=triviaqa
-PYTHONPATH=/gscratch/zlab/rulins/Scaling  python ric/main_ric.py \
-    --config-name default \
-    datastore.index.index_shard_ids=[[0]] \
-    evaluation.domain=$TASK_NAME \
-    datastore.domain=dpr_wiki \
-    datastore.embedding.num_shards=8
-```
-which will generate retrieved documents in `triviaqa_retrieved_results.jsonl`.
+# Advanced Usage
+We provide more details of advanced usage of our database below.
 
-Then assume you have the retrieved documents from the Wikipedia datastore in `RETRIEVAL_FILE`. To evaluate Llama2-7B using VLLM:
-```bash
-TASK_NAME=triviaqa
-LM_EVAL_DIR="lm-eval-data"
-CONCAT_K=3
-FEWSHOT_K=5
-OUTPUT_DIR=out
-RETRIEVAL_FILE=${TASK_NAME}_retrieved_results.jsonl
+## Content
+1. [Model Configuration](#model-configuration)
+2. [Datastore Configuration](#datastore-configuration)
+3. [Distributed Datastore Construction](#distributed-datastore-construction)
+4. [Document Retrieval](#document-retrieval)
+5. [Data Filtering](#data-filtering)
+6. [Subsampling](#subsampling)
+7. [Evaluation](#evaluation)
 
-mkdir $OUTPUT_DIR
-lm_eval --model vllm \
-    --model_args pretrained=meta-llama/Llama-2-7b-hf,tensor_parallel_size=1,dtype=auto,gpu_memory_utilization=0.8,data_parallel_size=1 \
-    --tasks $TASK_NAME \
-    --batch_size auto \
-    --inputs_save_dir $LM_EVAL_DIR \
-    --retrieval_file $RETRIEVAL_FILE \
-    --concat_k $CONCAT_K \
-    --num_fewshot $FEWSHOT_K \
-    --results_only_save_path $OUTPUT_DIR/$TASK_NAME-$CONCAT_K-docs-$FEWSHOT_K-shots.jsonl
-```
+## Model Configuration
+### Retriever
+### LM
+
+## Datastore Configuration
+
+## Distributed Datastore Construction
+
+## Document Retrieval
+
+## Data Filtering
+### Decontamination
+### Deduplication
+
+## Subsampling
+
+## Evaluation
+### Perplexity Evaluation
+### Downstream Evaluation

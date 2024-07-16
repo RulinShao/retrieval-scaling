@@ -1,0 +1,4 @@
+"fewshot_split": "mal_Mlym"
+"include": "_default_template_yaml"
+"task": "belebele_mal_Mlym"
+"test_split": "mal_Mlym"

@@ -1,0 +1,4 @@
+"fewshot_split": "hau_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_hau_Latn"
+"test_split": "hau_Latn"

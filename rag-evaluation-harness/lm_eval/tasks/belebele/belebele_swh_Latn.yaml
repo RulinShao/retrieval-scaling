@@ -1,0 +1,4 @@
+"fewshot_split": "swh_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_swh_Latn"
+"test_split": "swh_Latn"

@@ -1,0 +1,4 @@
+"fewshot_split": "tir_Ethi"
+"include": "_default_template_yaml"
+"task": "belebele_tir_Ethi"
+"test_split": "tir_Ethi"

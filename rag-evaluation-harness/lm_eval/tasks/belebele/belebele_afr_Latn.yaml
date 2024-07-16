@@ -1,0 +1,4 @@
+"fewshot_split": "afr_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_afr_Latn"
+"test_split": "afr_Latn"

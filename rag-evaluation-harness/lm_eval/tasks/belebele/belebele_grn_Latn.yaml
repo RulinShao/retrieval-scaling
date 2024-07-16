@@ -1,0 +1,4 @@
+"fewshot_split": "grn_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_grn_Latn"
+"test_split": "grn_Latn"

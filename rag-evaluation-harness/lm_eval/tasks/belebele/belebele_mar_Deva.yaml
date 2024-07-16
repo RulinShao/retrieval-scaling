@@ -1,0 +1,4 @@
+"fewshot_split": "mar_Deva"
+"include": "_default_template_yaml"
+"task": "belebele_mar_Deva"
+"test_split": "mar_Deva"

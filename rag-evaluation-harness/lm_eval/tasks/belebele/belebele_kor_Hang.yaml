@@ -1,0 +1,4 @@
+"fewshot_split": "kor_Hang"
+"include": "_default_template_yaml"
+"task": "belebele_kor_Hang"
+"test_split": "kor_Hang"

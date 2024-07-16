@@ -1,0 +1,4 @@
+"fewshot_split": "acm_Arab"
+"include": "_default_template_yaml"
+"task": "belebele_acm_Arab"
+"test_split": "acm_Arab"

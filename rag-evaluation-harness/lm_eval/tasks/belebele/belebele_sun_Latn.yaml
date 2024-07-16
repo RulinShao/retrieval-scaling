@@ -1,0 +1,4 @@
+"fewshot_split": "sun_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_sun_Latn"
+"test_split": "sun_Latn"

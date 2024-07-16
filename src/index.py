@@ -22,7 +22,10 @@ import faiss
 import numpy as np
 import torch
 from transformers import GPTNeoXTokenizerFast
-from pyserini.search.lucene import LuceneSearcher
+try:
+    from pyserini.search.lucene import LuceneSearcher
+except:
+    logging.warning("Failed to import pyserini! Please install it from https://github.com/castorini/pyserini/tree/master.")
 
 import contriever.src.contriever
 import contriever.src.utils

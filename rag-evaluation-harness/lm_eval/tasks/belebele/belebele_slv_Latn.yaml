@@ -1,0 +1,4 @@
+"fewshot_split": "slv_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_slv_Latn"
+"test_split": "slv_Latn"

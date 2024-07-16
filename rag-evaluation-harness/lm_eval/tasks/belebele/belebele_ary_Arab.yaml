@@ -1,0 +1,4 @@
+"fewshot_split": "ary_Arab"
+"include": "_default_template_yaml"
+"task": "belebele_ary_Arab"
+"test_split": "ary_Arab"

@@ -1,0 +1,4 @@
+"fewshot_split": "zul_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_zul_Latn"
+"test_split": "zul_Latn"

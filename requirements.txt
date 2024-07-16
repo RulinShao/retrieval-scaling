@@ -1,1 +1,8 @@
+omegaconf
+hydra-core
+tqdm
+numpy
+torch
+transformers
+sentence_transformers
 faiss

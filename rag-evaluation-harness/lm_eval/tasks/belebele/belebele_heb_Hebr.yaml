@@ -1,0 +1,4 @@
+"fewshot_split": "heb_Hebr"
+"include": "_default_template_yaml"
+"task": "belebele_heb_Hebr"
+"test_split": "heb_Hebr"

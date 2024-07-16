@@ -1,0 +1,4 @@
+"fewshot_split": "ita_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_ita_Latn"
+"test_split": "ita_Latn"

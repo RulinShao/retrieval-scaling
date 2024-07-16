@@ -1,0 +1,4 @@
+"fewshot_split": "fuv_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_fuv_Latn"
+"test_split": "fuv_Latn"

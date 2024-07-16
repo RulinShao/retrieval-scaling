@@ -95,7 +95,7 @@ evaluation:
   results_only_log_file: ???
   debug_mode: false
   decontamination: false
-  contamination_threshold: 0.5
+  contamination_threshold: 32
   decontamination_method: longest
   use_continuation: false
   use_both_doc_and_continuation: false

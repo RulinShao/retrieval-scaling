@@ -1,0 +1,4 @@
+"fewshot_split": "azj_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_azj_Latn"
+"test_split": "azj_Latn"

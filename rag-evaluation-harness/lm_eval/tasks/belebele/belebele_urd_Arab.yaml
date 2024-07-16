@@ -1,0 +1,4 @@
+"fewshot_split": "urd_Arab"
+"include": "_default_template_yaml"
+"task": "belebele_urd_Arab"
+"test_split": "urd_Arab"

@@ -1,0 +1,4 @@
+"fewshot_split": "npi_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_npi_Latn"
+"test_split": "npi_Latn"

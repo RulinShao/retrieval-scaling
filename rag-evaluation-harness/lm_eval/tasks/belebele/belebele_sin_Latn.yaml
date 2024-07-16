@@ -1,0 +1,4 @@
+"fewshot_split": "sin_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_sin_Latn"
+"test_split": "sin_Latn"

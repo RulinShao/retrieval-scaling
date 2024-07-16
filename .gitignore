@@ -1,0 +1,4 @@
+raw_data/
+scaling_out/
+*.log
+*pycache*

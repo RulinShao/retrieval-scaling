@@ -1,0 +1,20 @@
+name: scaling
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - torch
+  - faiss-gpu=1.8.0
+  
+  - pip:
+    - omegaconf
+    - hydra-core
+    - tqdm
+    - transformers
+    - sentence_transformers
+    - pyserini
+    - datasketch

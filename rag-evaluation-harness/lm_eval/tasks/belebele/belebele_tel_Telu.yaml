@@ -1,0 +1,4 @@
+"fewshot_split": "tel_Telu"
+"include": "_default_template_yaml"
+"task": "belebele_tel_Telu"
+"test_split": "tel_Telu"

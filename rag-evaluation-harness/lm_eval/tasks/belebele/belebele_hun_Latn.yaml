@@ -1,0 +1,4 @@
+"fewshot_split": "hun_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_hun_Latn"
+"test_split": "hun_Latn"

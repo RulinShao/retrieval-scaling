@@ -45,7 +45,10 @@ def fast_load_jsonl_shard(args, shard_index):
     
     file_sizes = []
     for file in all_file_paths:
-        file_path = os.path.join(raw_data_path, file)
+        if os.path.isdir(raw_data_path):
+            file_path = os.path.join(raw_data_path, file)
+        else:
+            file_path =  file
         file_sizes.append(os.path.getsize(file_path))
     total_size = sum(file_sizes)
 

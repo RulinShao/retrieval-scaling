@@ -1,0 +1,4 @@
+"fewshot_split": "pbt_Arab"
+"include": "_default_template_yaml"
+"task": "belebele_pbt_Arab"
+"test_split": "pbt_Arab"

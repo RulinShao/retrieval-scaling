@@ -17,7 +17,11 @@ import numpy as np
 import torch
 from transformers import AutoTokenizer, AutoModel
 from sentence_transformers import SentenceTransformer
-from pyserini.search.lucene import LuceneSearcher
+try:
+    from pyserini.search.lucene import LuceneSearcher
+except:
+    logging.warning("Failed to import pyserini! Please install it from https://github.com/castorini/pyserini/tree/master.")
+
 
 import contriever.src.index
 import contriever.src.contriever

@@ -1,0 +1,4 @@
+"fewshot_split": "urd_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_urd_Latn"
+"test_split": "urd_Latn"

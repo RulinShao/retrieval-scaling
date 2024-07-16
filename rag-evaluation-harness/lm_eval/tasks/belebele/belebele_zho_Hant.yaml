@@ -1,0 +1,4 @@
+"fewshot_split": "zho_Hant"
+"include": "_default_template_yaml"
+"task": "belebele_zho_Hant"
+"test_split": "zho_Hant"

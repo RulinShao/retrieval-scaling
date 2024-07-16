@@ -1,0 +1,4 @@
+"fewshot_split": "nya_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_nya_Latn"
+"test_split": "nya_Latn"

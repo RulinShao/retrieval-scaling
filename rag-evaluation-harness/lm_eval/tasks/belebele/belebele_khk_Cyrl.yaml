@@ -1,0 +1,4 @@
+"fewshot_split": "khk_Cyrl"
+"include": "_default_template_yaml"
+"task": "belebele_khk_Cyrl"
+"test_split": "khk_Cyrl"

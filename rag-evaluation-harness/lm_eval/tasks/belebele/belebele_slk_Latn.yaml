@@ -1,0 +1,4 @@
+"fewshot_split": "slk_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_slk_Latn"
+"test_split": "slk_Latn"

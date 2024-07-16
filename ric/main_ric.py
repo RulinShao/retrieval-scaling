@@ -14,7 +14,7 @@ from src.evaluate_perplexity import evaluate_perplexity
 An example script:
 PYTHONPATH=/gscratch/zlab/rulins/Scaling  python ric/main_ric.py
 """
-@hydra_runner(config_path="conf", config_name="contriever_rpj_debug")
+@hydra_runner(config_path="conf", config_name="default")
 def main(cfg) -> None:
     
     logging.info("\n\n************** Experiment configuration ***********")

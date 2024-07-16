@@ -1,0 +1,4 @@
+"fewshot_split": "ceb_Latn"
+"include": "_default_template_yaml"
+"task": "belebele_ceb_Latn"
+"test_split": "ceb_Latn"
