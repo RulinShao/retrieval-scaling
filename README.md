@@ -27,6 +27,7 @@ cd retrieval-scaling
 
 # create a new conda environment and install dependencies
 conda env create -f environment.yml
+conda activate scaling
 ```
 
 
