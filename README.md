@@ -72,7 +72,6 @@ We adapted [lm-evaluation-harnesses](https://github.com/EleutherAI/lm-evaluation
 
 First, install our RAG evaluation package.
 ```bash
-git clone https://github.com/RulinShao/rag-evaluation-harness.git
 pip install -e rag-evaluation-harness
 ```
 
