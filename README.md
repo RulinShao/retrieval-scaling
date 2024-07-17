@@ -138,7 +138,7 @@ In the below sections, we illustrate ways to configure the models.
 ### Retriever
 The default configuration uses Contriever-MSMACRO as the retriever. Additionally, we support off-the-shelf retriever models implemented in [HuggingFace](https://huggingface.co/models) or [SentenceTransformers](https://sbert.net/). To change the dense retriever, we require the user to define the 4 arguments below properly, as some models may use different encoders for query and context:
 
-```json
+```bash
 model:
   datastore_tokenizer: ???
   query_tokenizer: ???
@@ -152,7 +152,7 @@ You can use HuggingFace retrievers by passing its huggingface model name to the 
 ```
 
 For example, to use [DRAGON-RoBERTa](https://huggingface.co/facebook/dragon-roberta-query-encoder) as the retriever, set
-```json
+```bash
 model:
   datastore_tokenizer: facebook/dragon-roberta-query-encoder
   query_tokenizer: facebook/dragon-roberta-query-encoder
@@ -166,7 +166,7 @@ Similarly, if you want to use a dense retriever implemented in sentence-transfor
 
 For example, to use [GTR-T5-Base](https://huggingface.co/sentence-transformers/gtr-t5-base) as the retriever, set:
 
-```json
+```bash
 model:
   datastore_tokenizer: sentence-transformers/gtr-t5-base
   query_tokenizer: sentence-transformers/gtr-t5-base
@@ -177,7 +177,7 @@ model:
 **Sparse Retriever**
 
 We also support BM25 as a sparse retriever. To use BM25, set
-```json
+```bash
 model:
   sparse_retriever: bm25
 ```
@@ -186,7 +186,7 @@ Note: once `model.sparse_retriever` is set to bm25, the arguments for dense retr
 
 ### Reader LM
 We support all HuggingFace decoder models as the reader LM. You can set the reader LM by passing the model name or path to `model.lm_model`:
-```json
+```bash
 model:
   lm_model: EleutherAI/pythia-1b
 ```
@@ -197,7 +197,7 @@ Note: the reader LM for RAG-Evaluation-Harnesses is passed to the `lm-eval` comm
 **General Configuration**
 
 There are 3 arguments for datastore general configuration:
-```json
+```bash
 datastore:
   domain: fineweb_edu_1m
   raw_data_path: raw_data/fineweb-edu-1m.jsonl
@@ -210,7 +210,7 @@ datastore:
 **Embedding Configuration**
 
 We introduce several key arguments for embedding below. The others are either straightforward by its name or do not need to be changed in general usage.
-```json
+```bash
 datastore:
   embedding:
     shard_ids: [0]
