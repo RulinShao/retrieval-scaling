@@ -2,7 +2,7 @@
 
 Code and data for paper "Scaling Retrieval-Based Langauge Models with a Trillion-Token Datastore".
 
-[[Website](https://retrievalscaling.github.io)][[Paper](https://drive.google.com/file/d/1FDtWyJTwgyk-CRg6L8Syi6WEuBZrgytE/view)]
+[[Website](https://retrievalscaling.github.io)][[Paper](https://retrievalscaling.github.io/paper.pdf)]
 
 **Datastores:** [🤗 MassiveDS-1.4T](https://huggingface.co/datasets/rulins/MassiveDS-1.4T) | [🤗 MassiveDS-140B](https://huggingface.co/datasets/rulins/MassiveDS-140B)
 
@@ -86,7 +86,7 @@ PYTHONPATH=.  python ric/main_ric.py --config-name example_config \
   evaluation.data.eval_data=examples/nq_open.jsonl
 ```
 
-Finally, evaluate with a LM.
+Finally, evaluate with an LM.
 ```bash
 RETRIEVED_FILE=scaling_out/retrieved_results/facebook/contriever-msmarco/fineweb_edu_1m_datastore-256_chunk_size-1of1_shards/top_3/0/nq_open_retrieved_results.jsonl  # where retrieved documents are saved
 lm_eval --model hf \
@@ -99,7 +99,7 @@ lm_eval --model hf \
   --num_fewshot 5 \
   --results_only_save_path scaling_out/nq_open-5shots.jsonl
 ```
-The evaluation results will be printed in a table in the terminal as saved in `scaling_out/nq_open-5shots.jsonl`.
+The evaluation results will be printed in a table and saved in `scaling_out/nq_open-5shots.jsonl`.
 
 
 
