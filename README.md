@@ -304,11 +304,64 @@ PYTHONPATH=.  python ric/main_ric.py --config-name example_config \
 ```
 
 ## Data Filtering
+We provide functions to run post-hoc data filtering on the retrieved documents to either improve the retrieval quality or remove contamination data.
 ### Decontamination
+We support two decontamination methods: the longest string overlap based decontamination and the Jaccard similarity based decontamination.
+
+**Longest String Overlap Based Decontamination**
+
+The longest string overlap based decontamination method removes a document from the retrieved top-K if it has a continuous overlapped string that exceeds `n` words with the gold answer. You can set it through
+
+```bash
+evaluation:
+  decontamination: true
+  contamination_threshold: 32
+  decontamination_method: longest
+```
+where `n = 32` in the above case.
+
+**Jaccard Similarity Based Decontamination**
+
+Jaccard similarity based decontamination removes a document from the retrieved top-K if it has a 13-gram Jaccard similarity score that is higher than `t` (0 < `t` < 1) with the gold answer. You can set it through
+
+```bash
+evaluation:
+  decontamination: true
+  contamination_threshold: 0.8
+  decontamination_method: jaccard
+```
+where `p = 0.8` in the above case.
+
 ### Deduplication
+We provide a post-hoc deduplication method to remove the duplicates in the top-K retrieved documents before taking the top-k (k << K) for evaluation. We use MinHash for deduplication, which marks documents as deplicates if they have a 13-gram Jaccard similarity score over 0.8. For the set of documents that are marked duplicates, we keep the one with the highest retrieval score. You can enable it by setting `evaluation.search.post_process_only=true`.
 
 ## Subsampling
+We also support running post-hoc subsampling on the retrieved top-K documents, which helps us simulate the sitatuions where the raw data is subsampled to a smaller size with a given random seed. See Appendix A in our paper for more details. 
+
+To run subsampling on the retrieved top-K documents, turn on `evaluation.search.post_process_only`. Then set the subsampling probability through `evaluation.search.topk_subsample_p` and the random seed through `evaluation.search.subsample_seed` after running document retrieval.
 
 ## Evaluation
+In this section, we provide more details of the evaluation. Here are some general evaluation configurations:
+```bash
+evaluation:
+  domain: test_c4
+  concate_k: 3
+```
+where `evaluation.domain` is the name of the evaluation task and `concate_k` is the number of documents that will be prepended in context.
+
 ### Perplexity Evaluation
+Perplexity evaluation for retrieval-based LMs is different from perplexity evaluation for LMs. Specifically, given an input, the first part, i.e., the first half in our implementation, is used as the query to retrieve relevant documents, which thus cannot be used for perplexity computation. Therefore, only the second part, i.e., the second half, of the input is used to calculate perplexity. The retrieved top-k documents will be prepended in context before the query in a reversed order, i.e., the document with the highest retrieval score is the cloest to the query. The concatenated context is then fed into the LM and we compute the perplexity using the second half of the input as the target. 
+
+Below is an example configuration that first concatenates all tokens in `eval_data` in one sentence using sequence packaging and then chunks the sentence into smaller chunks of `max_eval_data_seq_length` tokens with a stride of `eval_stride`. For each 1024-token chunk, the first 512 tokens are used as query, and the last 512 tokens are used for perplexity calculation.
+```bash
+evaluation
+  data:
+    eval_data: examples/test_c4.jsonl
+    max_eval_data_seq_length: 1024
+    eval_stride: 512
+    merge: True
+    num_eval_samples: null 
+```
+
 ### Downstream Evaluation
+We developped a package for retrieval-augmented-generation (RAG) evaluation---RAG-Evaluation-Harness. The package supports over 60 standard academic benchmarks and can be easily used with retrieval augmentation as shown in the [Quick Start](#quick-start). We refer the user to the [README of RAG-Evaluation-Harness](https://github.com/RulinShao/retrieval-scaling/blob/main/rag-evaluation-harness/README.md) for more details, such as accelerating the inference with VLLMs, getting a list of supported tasks, and adding new tasks.
