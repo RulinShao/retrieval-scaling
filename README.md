@@ -9,6 +9,15 @@ Code and data for paper "Scaling Retrieval-Based Langauge Models with a Trillion
 
 <img src=images/scaling_gif.gif width="666" alt="Scaling overview.">
 
+If you find our code, data, models, or the paper useful, please cite the paper:
+```
+@article{shao2024scaling,
+  author = {Shao, Rulin and He, Jacqueline and Asai, Akari and Shi, Weijia and Dettmers, Tim and Min, Sewon and Zettlemoyer, Luke and Koh, Pang Wei},
+  title  = {Scaling Retrieval-Based Language Models with a Trillion-Token Datastore},
+  year   = {2024},
+}
+```
+
 # Overview
 This codebase contains:
 
