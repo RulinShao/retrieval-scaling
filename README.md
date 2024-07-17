@@ -127,7 +127,7 @@ We provide more details of advanced usage of our database below.
 1. [Model Configuration](#model-configuration)
 2. [Datastore Configuration](#datastore-configuration)
 3. [Distributed Datastore Construction](#distributed-datastore-construction)
-4. [Document Retrieval](#document-retrieval)
+4. [Distributed Document Retrieval](#distributed-document-retrieval)
 5. [Data Filtering](#data-filtering)
 6. [Subsampling](#subsampling)
 7. [Evaluation](#evaluation)
@@ -250,8 +250,58 @@ datastore:
 Note: we currently only support flat index. Please stay tuned for more index types.
 
 ## Distributed Datastore Construction
+For datastores with over 1B tokens, we recommend using our distributed datastore construction pipeline, which could linearly accelerate your datastore construction. 
 
-## Document Retrieval
+Below is an example slurm job script that parallelize the datastore construction using 16 GPUs.
+```bash
+#!/bin/bash
+#SBATCH --gres=gpu:1
+#SBATCH --constraint a40|l40
+#SBATCH --mem 100G
+#SBATCH --time=1-00:00:00
+#SBATCH --array=0-15
+
+PYTHONPATH=.  python ric/main_ric.py --config-name example_config \
+  tasks.datastore.embedding=true \
+  tasks.datastore.index=true \
+  datastore.embedding.num_shards=16 \
+  datastore.embedding.shard_ids=[$SLURM_ARRAY_TASK_ID] \
+  datastore.index.index_shard_ids=[[$SLURM_ARRAY_TASK_ID]]
+```
+The above script splits the raw data into 16 shards and builds embeddings and indices for these shards in parallel.
+
+## Distributed Document Retrieval
+
+Since the datastore is sharded, we can run document retrieval in parallel as well. For example, the below slurm script searches the top-K documents from each shard in parallel.
+
+```bash
+#!/bin/bash
+#SBATCH --gres=gpu:1
+#SBATCH --constraint a40|l40
+#SBATCH --mem 100G
+#SBATCH --time=1-00:00:00
+#SBATCH --array=0-15
+
+PYTHONPATH=.  python ric/main_ric.py --config-name example_config \
+  tasks.eval.task_name=perplexity \
+  tasks.eval.search=true \
+  datastore.embedding.num_shards=16 \
+  datastore.index.index_shard_ids=[[$SLURM_ARRAY_TASK_ID]]
+```
+When the 16 jobs finish, the top-K documents from each shard are saved separately. Next, we can merge the retrieved documents quickly on a single node:
+```bash
+index_list="[[0]"
+for (( i=1; i<=$((16 - 1)); i++ )); do
+index_list+=",[$i]"
+done
+index_list+="]"
+
+PYTHONPATH=.  python ric/main_ric.py --config-name example_config \
+  tasks.eval.task_name=perplexity \
+  tasks.eval.search=true \
+  datastore.embedding.num_shards=16 \
+  datastore.index.index_shard_ids=$index_list
+```
 
 ## Data Filtering
 ### Decontamination
