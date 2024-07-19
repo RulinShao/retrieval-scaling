@@ -2,7 +2,7 @@
 
 Code and data for paper "Scaling Retrieval-Based Langauge Models with a Trillion-Token Datastore".
 
-[[Website](https://retrievalscaling.github.io)][[Paper](https://retrievalscaling.github.io/paper.pdf)]
+[[Website](https://retrievalscaling.github.io)][[Paper](https://arxiv.org/abs/2407.12854)]
 
 **Datastores:** [🤗 MassiveDS-1.4T](https://huggingface.co/datasets/rulins/MassiveDS-1.4T) | [🤗 MassiveDS-140B](https://huggingface.co/datasets/rulins/MassiveDS-140B)
 
