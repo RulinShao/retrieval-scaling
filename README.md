@@ -38,6 +38,7 @@ cd retrieval-scaling
 conda env create -f environment.yml
 conda activate scaling
 ```
+Note: to accelerate the inference, we recommend users to install flash attention based on their accelerator type following the instructions [here](https://github.com/Dao-AILab/flash-attention).
 
 
 ## Quick Start
