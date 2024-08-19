@@ -115,10 +115,10 @@ The evaluation results will be printed in a table and saved in `scaling_out/nq_o
 
 
 ## Datastore Release
-We release the **data**, **embedding**, and **index** of our MassiveDS datastore, along with its 10% subsampled version, on HuggingFace:
+We release the **data**, **embedding**, and **index** of our MassiveDS datastore, along with its 10% subsampled version for smaller-scale experiments, on HuggingFace:
 
 * **10% Subsampled MassiveDS**: https://huggingface.co/datasets/rulins/MassiveDS-140B
-* **Full MassiveDS (uploading)**: https://huggingface.co/datasets/rulins/MassiveDS-1.4T
+* **Full MassiveDS**: https://huggingface.co/datasets/rulins/MassiveDS-1.4T
 
 
 
