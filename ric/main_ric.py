@@ -10,10 +10,6 @@ from src.search import search_topk, post_hoc_merge_topk_multi_domain
 from src.evaluate_perplexity import evaluate_perplexity
 
 
-"""
-An example script:
-PYTHONPATH=/gscratch/zlab/rulins/Scaling  python ric/main_ric.py
-"""
 @hydra_runner(config_path="conf", config_name="default")
 def main(cfg) -> None:
     
