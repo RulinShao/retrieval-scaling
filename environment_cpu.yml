@@ -1,4 +1,4 @@
-name: scaling
+name: scaling_cpu
 channels:
   - pytorch
   - nvidia
