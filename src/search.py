@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import pickle as pkl
 import logging
 import time
 import copy
@@ -87,6 +88,10 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
         embeddings = torch.cat(embeddings, dim=0).numpy()
     
     print(f"Questions embeddings shape: {embeddings.shape}")
+
+    if args.get('cache_query_embedding', False):
+        with open(args.query_embedding_save_path, 'wb') as fout:
+            pkl.dump(embeddings, fout)
 
     return embeddings
 
@@ -256,7 +261,12 @@ def search_dense_topk(cfg):
                 valid_query_idx.append(idx)
         
         logging.info(f"Searching for {len(queries)} queries from {len(data)} total evaluation samples...")
-        questions_embedding = embed_queries(eval_args.search, queries, query_encoder, query_tokenizer, model_name_or_path)
+        if eval_args.search.get('cache_query_embedding', False) and os.path.exists(eval_args.search.get('query_embedding_save_path', "")):
+            logging.info(f"Loading query embeddings from {eval_args.search.query_embedding_save_path}")
+            with open(eval_args.search.query_embedding_save_path, 'rb') as fin:
+                questions_embedding = pkl.load(fin)
+        else:
+            questions_embedding = embed_queries(eval_args.search, queries, query_encoder, query_tokenizer, model_name_or_path)
 
         # load index
         for index_shard_ids in index_shard_ids_list:
