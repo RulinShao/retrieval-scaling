@@ -84,6 +84,7 @@ evaluation:
     use_saved_dedup_data: false  # reuse the saved dedupped data for efficient subsampling
     cache_query_embedding: false  # cache the query embeddings for reuse
     query_embedding_save_path: ""  # path to save the query embeddings, used when `cache_query_embedding=true`
+    cache_query_embedding_only: false # only save the query embeddings without running search
   data:
     eval_data: ???
     max_eval_data_seq_length: 1024

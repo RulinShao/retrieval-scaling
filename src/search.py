@@ -267,6 +267,8 @@ def search_dense_topk(cfg):
                 questions_embedding = pkl.load(fin)
         else:
             questions_embedding = embed_queries(eval_args.search, queries, query_encoder, query_tokenizer, model_name_or_path)
+        if eval_args.search.get('cache_query_embedding_only', False):
+            return
 
         # load index
         for index_shard_ids in index_shard_ids_list:
