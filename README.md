@@ -41,6 +41,11 @@ conda activate scaling
 ```
 Note: to accelerate the inference, we recommend users to install flash attention based on their accelerator type following the instructions [here](https://github.com/Dao-AILab/flash-attention).
 
+To create a CPU-only environment:
+```bash
+conda env create -f environment_cpu.yml
+conda activate scaling_cpu
+```
 
 ## Quick Start
 For a quick start, we provide a script that constructs a datastore using data in [FineWeb-Edu-1MT](https://huggingface.co/datasets/rulins/FineWeb-Edu-1MT) and evaluates it with LM [Pythia-1B](https://huggingface.co/EleutherAI/pythia-1b). 

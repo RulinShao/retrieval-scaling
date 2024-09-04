@@ -59,7 +59,7 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
         embeddings, batch_question = [], []
         with torch.no_grad():
 
-            for k, q in enumerate(queries):
+            for k, q in tqdm(enumerate(queries)):
                 if args.lowercase:
                     q = q.lower()
                 if args.normalize_text:
@@ -76,7 +76,7 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
                         truncation=True,
                     )
 
-                    encoded_batch = {k: v.cuda() for k, v in encoded_batch.items()}
+                    encoded_batch = {k: v.to(device) for k, v in encoded_batch.items()}
                     output = model(**encoded_batch)
                     if "contriever" not in model_name_or_path:
                         output = output.last_hidden_state[:, 0, :]
@@ -236,7 +236,7 @@ def search_dense_topk(cfg):
             raise AttributeError
 
         query_encoder.eval()
-        query_encoder = query_encoder.cuda()
+        query_encoder = query_encoder.to(device)
         if not index_args.no_fp16:
             query_encoder = query_encoder.half()
         
