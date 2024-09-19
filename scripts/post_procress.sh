@@ -1,5 +1,5 @@
 EVAL_DOMAIN=all_queries
-N_DOCS=100
+N_DOCS=2000
 
 
 python /mnt/md-256k/retrieval-scaling/scripts/write_retrieval_paths_to_txt.py \
@@ -7,7 +7,7 @@ python /mnt/md-256k/retrieval-scaling/scripts/write_retrieval_paths_to_txt.py \
     --n_docs $N_DOCS
 
 
-RERANK_N_DOCS=50
+RERANK_N_DOCS=20
 MERGE_TXT=/mnt/md-256k/scaling_out/retrieved_results/post_processed/${EVAL_DOMAIN}_top${N_DOCS}_8shards.txt
 BASE_MERGED_PATH=/mnt/md-256k/scaling_out/retrieved_results/post_processed/dedup_merged_${EVAL_DOMAIN}_top${N_DOCS}.jsonl
 MERGED_PATH=/mnt/md-256k/scaling_out/retrieved_results/post_processed/full_subsampled_${p}_${seed}_dedup_merged_${EVAL_DOMAIN}_top${N_DOCS}.jsonl
