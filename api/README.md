@@ -13,5 +13,5 @@ ssh -NL 0.0.0.0:<FORWARD_PORT>:<job node>:<SERVE_PORT> klone-login
 
 #### Step 3. Send request to the address
 ```bash
-curl -X POST localhost:5005/search -H "Content-Type: application/json" -d '{"query": "example query", "domains": "pes2o"}'
+curl -X POST localhost:<FORWARD_PORT>/search -H "Content-Type: application/json" -d '{"query": "example query", "domains": "pes2o"}'
 ```
