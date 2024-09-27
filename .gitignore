@@ -3,3 +3,4 @@ scaling_out/
 *.log
 *pycache*
 scripts/
+lm_eval.egg-info/
