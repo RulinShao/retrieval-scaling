@@ -13,4 +13,4 @@ class DatastoreAPI():
         return item
 
 def get_datastore(datastore_name):
-    raise DatastoreAPI(datastore_name)
+    return DatastoreAPI(datastore_name)

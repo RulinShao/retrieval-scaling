@@ -3,7 +3,7 @@ from flask_cors import CORS
 import threading
 import queue
 import time
-from api.utils import get_datastore
+from utils import get_datastore
 
 app = Flask(__name__)
 CORS(app)
@@ -27,13 +27,14 @@ class BackgroundThread(threading.Thread):
             try:
                 item = self.queue.get(timeout=1)
                 print(f"Processing item: {item}")
-                search_results = self.datastore.search(item)
+                search_results = self.datastore.search(item)  # how to return the searched results back to user?
                 self.queue.task_done()
             except queue.Empty:
                 pass
 
     def search(self, item):
         self.queue.put(item)
+
 
 background_thread = BackgroundThread()
 background_thread.start()
@@ -52,6 +53,10 @@ def queue_size():
     size = background_thread.queue.qsize()
     return jsonify({"queue_size": size}), 200
 
+@app.route("/")    
+def home():                                                                                                                    
+    return jsonify("Hello world!")
+
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5005)
