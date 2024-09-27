@@ -1,4 +1,5 @@
-
+import time
+import random
 
 
 class DatastoreAPI():
@@ -8,8 +9,9 @@ class DatastoreAPI():
     
     def search(self, item):
         # TODO: do actual search
+        # time.sleep(random.random() * 2)
         item.searched_results = ["Dummpy test case."]
-
+        print(item)
         return item
 
 def get_datastore(datastore_name):
