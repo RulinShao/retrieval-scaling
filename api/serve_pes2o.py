@@ -1,9 +1,28 @@
+import hydra
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from utils import get_datastore
+from pes2o_ds import get_datastore
 import threading
 import queue
 from dataclasses import dataclass
+import hydra
+from omegaconf import OmegaConf
+from hydra.core.global_hydra import GlobalHydra
+
+def load_config():
+    # Ensuring Hydra is not already initialized which can cause issues in notebooks or multiple initializations
+    if GlobalHydra.instance().is_initialized():
+        GlobalHydra.instance().clear()
+
+    # Initialize Hydra and set the path to the config directory
+    hydra.initialize(config_path="conf")
+
+    # Compose the configuration (this loads the configuration files and merges them)
+    cfg = hydra.compose(config_name="pes2o")
+
+    # Print or use the configuration as needed
+    print(OmegaConf.to_yaml(cfg))
+    return cfg
 
 
 app = Flask(__name__)
@@ -31,12 +50,13 @@ class SearchQueue:
         self.queue = queue.Queue()
         self.lock = threading.Lock()
         self.current_search = None
-        self.datastore = get_datastore('MassiveDS-1.4T')
+        self.cfg = load_config()
+        self.datastore = get_datastore(self.cfg)
     def search(self, item):
         with self.lock:
             if self.current_search is None:
                 self.current_search = item
-                results = self.datastore.search(item)
+                results = self.datastore.search(item.query)
                 self.current_search = None
                 return results
             else:
@@ -61,15 +81,15 @@ threading.Thread(target=search_queue.process_queue, daemon=True).start()
 def search():
     item = Item(
         query=request.json['query'],
-        domains=request.json['domains']
+        domains=request.json['domains'],
     )
     # Perform the search synchronously, but queue if another search is in progress
-    search_item = search_queue.search(item)
-    print(search_item)
+    searched_results = search_queue.search(item)
+    print(searched_results)
     return jsonify({
         "message": f"Search completed for '{item.query}' from {item.domains}",
         "query": item.query,
-        "results": search_item.searched_results,
+        "results": searched_results,
     }), 200
 
 @app.route('/current_search')
@@ -97,6 +117,7 @@ def home():
 def main():
     app.run(host='0.0.0.0', port=5005)
 
-
 if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5005)
     main()
+    # cfg = load_config()

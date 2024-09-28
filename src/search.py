@@ -34,8 +34,10 @@ import contriever.src.normalize_text
 from src.data import load_eval_data
 from src.index import Indexer, get_index_dir_and_passage_paths, get_index_passages_and_id_map, get_bm25_index_dir
 from src.decontamination import check_below_lexical_overlap_threshold
-from utils.deduplication import remove_duplicates_with_minhash, multiprocess_deduplication
-
+try:
+    from utils.deduplication import remove_duplicates_with_minhash, multiprocess_deduplication
+except:
+    print("Cannot import from utils")
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
