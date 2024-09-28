@@ -1,6 +1,7 @@
 from omegaconf.omegaconf import OmegaConf
 import contriever.src.contriever
 import hydra
+import pickle
 import torch
 
 from src.hydra_runner import hydra_runner
@@ -18,12 +19,13 @@ class Pes2oDatastoreAPI():
         self.index, self.passages, self.passage_id_map = self.load_pes2o_index()
         self.query_encoder, self.query_tokenizer, _ = contriever.src.contriever.load_retriever(self.cfg.model.query_encoder)
         self.query_encoder = self.query_encoder.to(device)
+        self.pes2o_id_map = self.load_pes2o_id_mapping()
     
     def search(self, query, n_docs=3):
         query_embedding = self.embed_query(query)
         top_ids_and_scores = self.index.search_knn(query_embedding, n_docs)
-        searched_passages, searched_scores = self.get_retrieved_passages(top_ids_and_scores)
-        return searched_passages, searched_scores
+        searched_passages, searched_scores, pes2o_ids = self.get_retrieved_passages(top_ids_and_scores)
+        return {'pes2o IDs': pes2o_ids, 'scores': searched_scores, 'passages': searched_passages}
     
     def load_pes2o_index(self,):
         index_dir, _ = get_index_dir_and_passage_paths(self.cfg, self.cfg.datastore.index.index_shard_ids)
@@ -41,9 +43,17 @@ class Pes2oDatastoreAPI():
     def get_retrieved_passages(self, top_ids_and_scores):
         results_and_scores = top_ids_and_scores[0]
         docs = [self.passages[int(doc_id)]["text"] for doc_id in results_and_scores[0]]
+        ids = [self.passages[int(doc_id)]["id"] for doc_id in results_and_scores[0]]
+        pes2o_ids = [self.pes2o_id_map[_id][doc[:100]] for _id, doc in zip(ids, docs)]
         scores = [str(score) for score in results_and_scores[1]]
-        return docs, scores
-
+        return docs, scores, pes2o_ids
+    
+    def load_pes2o_id_mapping(self,):
+        pes2o_mapping_file = '/gscratch/zlab/rulins/scaling-clean/api/updated_pes2o_id_mapping.pkl'
+        with open(pes2o_mapping_file, 'rb') as file:
+            id_mapping = pickle.load(file)
+        return id_mapping
+    
 
 @hydra.main(config_path="/gscratch/zlab/rulins/scaling-clean/ric/conf", config_name="pes2o")
 def get_datastore(cfg):
