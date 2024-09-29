@@ -70,7 +70,7 @@ class SearchQueue:
                     now = datetime.datetime.now()
                     formatted_time = now.strftime('%Y-%m-%d %H:%M:%S')
                     with open(self.query_log, 'a+') as fin:
-                        fin.write(json.dumps({'time': formatted_time, 'query': item.query}))
+                        fin.write(json.dumps({'time': formatted_time, 'query': item.query})+'\n')
                 results = self.datastore.search(item.query, item.n_docs)
                 self.current_search = None
                 return results
