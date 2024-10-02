@@ -1,4 +1,4 @@
-EVAL_DOMAIN=all_queries_karthik
+EVAL_DOMAIN=all_queries_karthik_250
 
 N_DOCS=2000
 
@@ -32,10 +32,10 @@ for TASK_ID in $(seq 0 14); do
     datastore.embedding.shard_ids=[] \
     datastore.index.index_shard_ids=$index_list \
     evaluation.domain=$EVAL_DOMAIN \
-    evaluation.data.eval_data=/mnt/md-256k/comem/karthik/all_queries.jsonl \
+    evaluation.data.eval_data=/mnt/md-256k/comem/karthik/all_queries_250.jsonl \
     evaluation.search.n_docs=$N_DOCS \
     evaluation.search.cache_query_embedding=true \
-    evaluation.search.query_embedding_save_path=/mnt/md-256k/comem/karthik/all_queries_embeddings.pkl
+    evaluation.search.query_embedding_save_path=/mnt/md-256k/comem/karthik/all_queries_embeddings_250.pkl
 
 done
 end_time=$(date +%s)

@@ -49,31 +49,32 @@ def post_process_claims():
         pickle.dump(hashed_dedupped_retrieved_results, fout)
 
 
-def post_process_karthik():
-    raw_data_path = "/mnt/md-256k/comem/karthik/114.jsonl"
-    all_query_save_path = "/mnt/md-256k/comem/karthik/all_queries.jsonl"
+def post_process_karthik(k=100):
+    raw_data_path = "/mnt/md-256k/comem/karthik/250.jsonl"
+    all_query_save_path = "/mnt/md-256k/comem/karthik/all_queries_250.jsonl"
     retrieved_dir = "/mnt/md-256k/scaling_out/retrieved_results/post_processed"
-    retrieved_path = os.path.join(retrieved_dir, "merged_all_queries_top2000.jsonl")
-    dedupped_retrieved_path = os.path.join(retrieved_dir, "dedup_merged_all_queries_top2000.jsonl")
+    retrieved_path = os.path.join(retrieved_dir, "merged_all_queries_250_top2000.jsonl")
+    dedupped_retrieved_path = os.path.join(retrieved_dir, "dedup_merged_all_queries_250_top2000.jsonl")
 
     raw_data = load_jsonl(raw_data_path)
     
     dedupped_retrieved_results = load_jsonl(dedupped_retrieved_path)
     hashed_dedupped_retrieved_results = {}
-    count_less_than_10 = 0
+    count_less_than_k = 0
     for ex in dedupped_retrieved_results:
-        hashed_dedupped_retrieved_results[ex['query']] = ex['ctxs'][:min(10, len(ex['ctxs']))]
-        if len(ex['ctxs']) < 10:
-            count_less_than_10 += 1
+        hashed_dedupped_retrieved_results[ex['query']] = ex['ctxs'][:min(k, len(ex['ctxs']))]
+        if len(ex['ctxs']) < k:
+            count_less_than_k += 1
             print(len(ex['ctxs']))
         
-    print(f"{count_less_than_10} out of {len(raw_data)} examples have fewer than 10 retrieved passages.")
+    print(f"{count_less_than_k} out of {len(raw_data)} examples have fewer than {k} retrieved passages.")
     
     for ex in raw_data:
-        docs = hashed_dedupped_retrieved_results[ex['prompt']]
-        ex['ctxs'] = docs[:10]
+        key = 'prompt' if 'prompt' in ex.keys() else 'question'
+        docs = hashed_dedupped_retrieved_results[ex[key]]
+        ex['ctxs'] = docs[:k]
 
-    save_path = "/mnt/md-256k/comem/karthik/114_retrieved.jsonl"
+    save_path = f"/mnt/md-256k/comem/karthik/250_retrieved_top_{k}.jsonl"
     save_jsonl(raw_data, save_path)
 
 if __name__ == '__main__':

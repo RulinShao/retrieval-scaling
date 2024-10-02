@@ -42,13 +42,13 @@ def preprocess_clamis():
 
 
 def preprocess_prompt():
-    all_query_save_path = "/mnt/md-256k/comem/karthik/all_queries.jsonl"
-    data_path = "/mnt/md-256k/comem/karthik/114.jsonl"
+    all_query_save_path = "/mnt/md-256k/comem/karthik/all_queries_250.jsonl"
+    data_path = "/mnt/md-256k/comem/karthik/250.jsonl"
 
     all_queries = []
     data = load_jsonl(data_path)
     for ex in data:
-        ex['query'] = ex['prompt']
+        ex['query'] = ex['prompt'] if 'prompt' in ex.keys() else ex['question']
         all_queries.append(ex)
 
     save_jsonl(all_queries, all_query_save_path)
