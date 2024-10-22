@@ -5,15 +5,8 @@ from tqdm import tqdm
 
 
 def convert_pkl_to_jsonl(passage_dir):
-    # write down to avoid confusion; modify to general function when integrating code.
-    pkl_files = [
-        "raw_passages-0-of-16.pkl",   "raw_passages-12-of-16.pkl",  "raw_passages-15-of-16.pkl", 
-        "raw_passages-3-of-16.pkl",   "raw_passages-6-of-16.pkl",   "raw_passages-9-of-16.pkl",
-        "raw_passages-10-of-16.pkl",  "raw_passages-13-of-16.pkl",  "raw_passages-1-of-16.pkl",  
-        "raw_passages-4-of-16.pkl",   "raw_passages-7-of-16.pkl",
-        "raw_passages-11-of-16.pkl",  "raw_passages-14-of-16.pkl",  "raw_passages-2-of-16.pkl",  
-        "raw_passages-5-of-16.pkl",   "raw_passages-8-of-16.pkl"
-    ]
+    filenames = os.listdir(passage_dir)
+    pkl_files = [filename for filename in filenames if '.pkl' in filename]
     for file in tqdm(pkl_files):
         
         # Create the JSONL file name
@@ -41,15 +34,9 @@ def get_passage_pos_ids(passage_dir, pos_map_save_path):
             pos_id_map = pickle.load(f)
         return pos_id_map
 
-    # write down to avoid confusion; modify to general function when integrating code.
-    jsonl_files = [
-        "raw_passages-0-of-16.jsonl",   "raw_passages-12-of-16.jsonl",  "raw_passages-15-of-16.jsonl", 
-        "raw_passages-3-of-16.jsonl",   "raw_passages-6-of-16.jsonl",   "raw_passages-9-of-16.jsonl",
-        "raw_passages-10-of-16.jsonl",  "raw_passages-13-of-16.jsonl",  "raw_passages-1-of-16.jsonl",  
-        "raw_passages-4-of-16.jsonl",   "raw_passages-7-of-16.jsonl",
-        "raw_passages-11-of-16.jsonl",  "raw_passages-14-of-16.jsonl",  "raw_passages-2-of-16.jsonl",  
-        "raw_passages-5-of-16.jsonl",   "raw_passages-8-of-16.jsonl"
-    ]
+    filenames = os.listdir(passage_dir)
+    jsonl_files = [filename for filename in filenames if '.jsonl' in filename]
+
     pos_id_map = {}
     for shard_id in tqdm(range(len(jsonl_files))):
         filename = f"raw_passages-{shard_id}-of-16.jsonl"
