@@ -3,3 +3,4 @@ scaling_out/
 *.log
 *pycache*
 outputs/
+*.pkl
