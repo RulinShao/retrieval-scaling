@@ -494,7 +494,7 @@ def evaluate(
                 else:
                     import sys
                     if sys.stdin.isatty():
-                        import pdb; pdb.set_trace()
+                        print(f"Query not found in",task)
                         continue
                     else:
                         raise RuntimeError
