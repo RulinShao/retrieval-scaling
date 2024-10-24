@@ -1,6 +1,6 @@
-EVAL_DOMAIN=all_queries_karthik_250
+EVAL_DOMAIN=all_cot_query
 
-N_DOCS=2000
+N_DOCS=1000
 
 datastores=(rpj_wiki rpj_stackexchange rpj_book rpj_arxiv rpj_github pes2o pubmed math dpr_wiki \
           rpj_c4 rpj_commoncrawl_2019-30 rpj_commoncrawl_2020-05 rpj_commoncrawl_2021-04 rpj_commoncrawl_2022-05 rpj_commoncrawl_2023-06)
@@ -23,7 +23,7 @@ for TASK_ID in $(seq 0 14); do
     done
     index_list+="]"
     echo INDEX_IDS:$index_list
-    PYTHONPATH=/mnt/md-256k/retrieval-scaling  python /mnt/md-256k/retrieval-scaling/ric/main_ric.py \
+    PYTHONPATH=/gscratch/zlab/rulins/scaling-clean  python /gscratch/zlab/rulins/scaling-clean/ric/main_ric.py \
     --config-name largest_default \
     tasks.eval.task_name=lm-eval \
     tasks.eval.search=true \
@@ -32,10 +32,10 @@ for TASK_ID in $(seq 0 14); do
     datastore.embedding.shard_ids=[] \
     datastore.index.index_shard_ids=$index_list \
     evaluation.domain=$EVAL_DOMAIN \
-    evaluation.data.eval_data=/mnt/md-256k/comem/karthik/all_queries_250.jsonl \
+    evaluation.data.eval_data=/gscratch/zlab/rulins/scaling-clean/scripts/all_cot_query.jsonl \
     evaluation.search.n_docs=$N_DOCS \
     evaluation.search.cache_query_embedding=true \
-    evaluation.search.query_embedding_save_path=/mnt/md-256k/comem/karthik/all_queries_embeddings_250.pkl
+    evaluation.search.query_embedding_save_path=/gscratch/zlab/rulins/scaling-clean/scripts/all_cot_query.pkl
 
 done
 end_time=$(date +%s)
