@@ -51,13 +51,13 @@ class Pes2oIVFPQDatastoreAPI():
             line = file.readline()
         return json.loads(line)
     
-    def embed_query(self, query):
-        query_embbeding = embed_queries(self.cfg.evaluation.search, [query], self.query_encoder, self.query_tokenizer, self.cfg.model.query_encoder)
-        return query_embbeding
-    
     def get_passage(self, index_id):
         shard_id, chunk_id = self.index_id_to_db_id[index_id]
         return self.id2psg(shard_id, chunk_id)
+    
+    def embed_query(self, query):
+        query_embbeding = embed_queries(self.cfg.evaluation.search, [query], self.query_encoder, self.query_tokenizer, self.cfg.model.query_encoder)
+        return query_embbeding
     
     def get_retrieved_passages(self, top_ids_and_scores):
         passages = [self.get_passage(int(index_id)) for index_id in top_ids_and_scores[0][0]]

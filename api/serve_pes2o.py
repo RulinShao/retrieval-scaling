@@ -21,7 +21,7 @@ def load_config():
     hydra.initialize(config_path="conf")
 
     # Compose the configuration (this loads the configuration files and merges them)
-    cfg = hydra.compose(config_name="pes2o")
+    cfg = hydra.compose(config_name="pes2o_v3")
 
     # Print or use the configuration as needed
     print(OmegaConf.to_yaml(cfg))
