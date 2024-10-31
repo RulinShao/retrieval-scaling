@@ -1,4 +1,4 @@
-# Instruction on Indexing and Serving PES2O Data
+# Instruction on Indexing and Searching Over PES2O Data
 
 ### Setup Environment (If you haven't)
 ```bash
