@@ -66,7 +66,6 @@ class BaseIndexer(ABC):
 class Indexer(object):
 
     def __init__(self, vector_sz, n_subquantizers=0, n_bits=8):
-        assert n_subquantizers == 0
         if n_subquantizers > 0:
             # do not use buggy PQ, it returns the same results regardless of query in current codes
             self.index = faiss.IndexPQ(vector_sz, n_subquantizers, n_bits, faiss.METRIC_INNER_PRODUCT)
@@ -135,7 +134,7 @@ def load_embeds(embed_path, dstore_size, dimension, dtype):
                      shape=(dstore_size, dimension))
 
 
-class DataStore(object):
+class IndexPQIVF(object):
     def __init__(self,
                  embed_path,
                  index_path,

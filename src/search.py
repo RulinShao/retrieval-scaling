@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import pickle as pkl
 import logging
 import time
 import copy
@@ -33,8 +34,10 @@ import contriever.src.normalize_text
 from src.data import load_eval_data
 from src.index import Indexer, get_index_dir_and_passage_paths, get_index_passages_and_id_map, get_bm25_index_dir
 from src.decontamination import check_below_lexical_overlap_threshold
-from utils.deduplication import remove_duplicates_with_minhash, multiprocess_deduplication
-
+try:
+    from utils.deduplication import remove_duplicates_with_minhash, multiprocess_deduplication
+except:
+    print("Cannot import from utils")
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
@@ -59,7 +62,7 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
         embeddings, batch_question = [], []
         with torch.no_grad():
 
-            for k, q in enumerate(queries):
+            for k, q in tqdm(enumerate(queries)):
                 if args.lowercase:
                     q = q.lower()
                 if args.normalize_text:
@@ -76,7 +79,7 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
                         truncation=True,
                     )
 
-                    encoded_batch = {k: v.cuda() for k, v in encoded_batch.items()}
+                    encoded_batch = {k: v.to(device) for k, v in encoded_batch.items()}
                     output = model(**encoded_batch)
                     if "contriever" not in model_name_or_path:
                         output = output.last_hidden_state[:, 0, :]
@@ -87,6 +90,10 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
         embeddings = torch.cat(embeddings, dim=0).numpy()
     
     print(f"Questions embeddings shape: {embeddings.shape}")
+
+    if args.get('cache_query_embedding', False):
+        with open(args.query_embedding_save_path, 'wb') as fout:
+            pkl.dump(embeddings, fout)
 
     return embeddings
 
@@ -236,7 +243,7 @@ def search_dense_topk(cfg):
             raise AttributeError
 
         query_encoder.eval()
-        query_encoder = query_encoder.cuda()
+        query_encoder = query_encoder.to(device)
         if not index_args.no_fp16:
             query_encoder = query_encoder.half()
         
@@ -256,7 +263,14 @@ def search_dense_topk(cfg):
                 valid_query_idx.append(idx)
         
         logging.info(f"Searching for {len(queries)} queries from {len(data)} total evaluation samples...")
-        questions_embedding = embed_queries(eval_args.search, queries, query_encoder, query_tokenizer, model_name_or_path)
+        if eval_args.search.get('cache_query_embedding', False) and os.path.exists(eval_args.search.get('query_embedding_save_path', "")):
+            logging.info(f"Loading query embeddings from {eval_args.search.query_embedding_save_path}")
+            with open(eval_args.search.query_embedding_save_path, 'rb') as fin:
+                questions_embedding = pkl.load(fin)
+        else:
+            questions_embedding = embed_queries(eval_args.search, queries, query_encoder, query_tokenizer, model_name_or_path)
+        if eval_args.search.get('cache_query_embedding_only', False):
+            return
 
         # load index
         for index_shard_ids in index_shard_ids_list:

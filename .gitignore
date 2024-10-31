@@ -2,3 +2,7 @@ raw_data/
 scaling_out/
 *.log
 *pycache*
+outputs/
+*.pkl
+scripts/
+lm_eval.egg-info/

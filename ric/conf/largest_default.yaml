@@ -1,0 +1,125 @@
+name: default
+
+tasks:
+  datastore:
+    embedding: false
+    index: false
+  eval: 
+    task_name: perplexity  # task name is used to load the eval data. Options:["perplexity", "lm-eval"].
+    search: false  # search top-k offline
+    merge_search: false  # merge searched results from multiple sources
+    inference: false  # run inference with LM
+
+model:
+  sparse_retriever: null  # choices: null, bm25
+  
+  datastore_tokenizer: facebook/contriever-msmarco
+  query_tokenizer: facebook/contriever-msmarco
+  query_encoder: facebook/contriever-msmarco
+  datastore_encoder: facebook/contriever-msmarco
+  lm_model: EleutherAI/pythia-1b    # LM for evaluation
+
+
+datastore:
+  domain: ???
+  raw_data_path: null
+  chunk_size: 256  # chunk size in number of words
+  datastore_root_dir: /mnt/md-256k/MassiveDS-1.4T
+  
+  embedding:
+    raw_data_path: ${datastore.raw_data_path}
+    shard_ids: [0]
+    num_shards: 1
+    chunk_size: ${datastore.chunk_size}
+    keep_last_chunk: true
+    passages_dir: ${datastore.datastore_root_dir}/passages/${datastore.domain}/${datastore.embedding.num_shards}-shards
+
+    per_gpu_batch_size: 512
+    passage_maxlength: ${datastore.chunk_size}  # need to set to a larger num than chunk size
+    model_name_or_path: ${model.datastore_encoder}
+    tokenizer: ${model.datastore_tokenizer}
+    no_fp16: False
+    no_title: False
+    lowercase: False
+    normalize_text: False
+
+    prefix: "passages"
+    embedding_dir: ${datastore.datastore_root_dir}/embeddings/${model.datastore_encoder}/${datastore.domain}/${datastore.embedding.num_shards}-shards
+    use_saved_if_exists: true
+
+  index:
+    raw_data_path: ${datastore.raw_data_path}
+    chunk_size: ${datastore.chunk_size}
+    passages_embeddings: ${datastore.embedding.embedding_dir}/*.pkl
+    num_subsampled_embedding_files: 1    # Number of subsampled embeddings, use all if pass -1, not supported yet, assume use all embeddings in the dir
+    index_shard_ids: [[0]]  # idx of passages included in each index; [0, 1, 2] means build a single index over psg-0&1&2; [[0], [1,2]] means build 1 index for psg-0 and 1 index for psg-1&2.
+    save_or_load_index: True
+    no_fp16: False
+    index_type: PQ    # PQ, PQIVF (PQ degrades to flat when n_subquantizers is 0)
+    indexing_batch_size: 1000000
+    projection_size: 768
+    n_subquantizers: 0    # Number of subquantizer used for vector quantization, if 0 flat index is used
+    n_bits: 64    # Number of bits per subquantizer
+    overwrite: false
+
+
+evaluation:
+  domain: ???
+  search:
+    n_docs: 1000
+    per_gpu_batch_size: 64    # Batch size for query encoding
+    question_maxlength: 512    # Maximum number of tokens in a question
+    lowercase: False
+    normalize_text: False
+    overwrite: false    # Overwrite the search results if exist
+    merge_multi_index_results: true  # Merge the searched results by multiple shards (same source)
+    merge_multi_source_results: false  # Merge the searched results by multiple sources
+    paths_to_merge: null  # provide a txt file where each line is a file with searched results to merge when merge_multi_source_results is set to True
+    merged_path: null  # path to save the multi-source merged results
+    topk_subsample_p: 1  # subsample from the top-k with coin flipping with prob p if p < 1
+    subsample_seed: 1000
+    rerank_method: null  # rerank the results based on the method specified here (supported: lexical) *currently only support multi-dource situation
+    answer_path: null  # path to load answers for lm-eval
+    rerank_n_docs: null  # number of documents used for reranking, set to null if not removing any data
+    use_saved_dedup_data: false  # reuse the saved dedupped data for efficient subsampling
+    cache_query_embedding: false  # cache the query embeddings for reuse
+    query_embedding_save_path: ""  # path to save the query embeddings, used when `cache_query_embedding=true`
+    cache_query_embedding_only: false # only save the query embeddings without running search
+  data:
+    eval_data: ???
+    max_eval_data_seq_length: 1024
+    eval_stride: 512
+    merge: True
+    num_eval_samples: null    # Number of evaluation samples, pass null to evaluate on all samples
+    seed: 310    # Random seed for subsampling
+  concate_k: 0    # Number of retrieved passages for concatenation, 0 means LM-only
+  max_retrieval_len: 1024
+  calibration_out_dir: null
+  eval_output_dir: /mnt/md-256k/scaling_out/retrieved_results/${model.datastore_encoder}/${datastore.domain}_datastore-${datastore.chunk_size}_chunk_size-1of${datastore.embedding.num_shards}_shards/top_${evaluation.search.n_docs}
+  results_only_log_file: ???
+  debug_mode: false
+  decontamination: false
+  contamination_threshold: 32
+  decontamination_method: longest
+  use_continuation: false
+  use_both_doc_and_continuation: false
+
+
+hydra:
+  job_logging:
+    root:
+      level: INFO
+      handlers: [console, file]
+    handlers:
+      console:
+        class: logging.StreamHandler
+        stream: ext://sys.stdout
+        formatter: simple
+      file:
+        class: logging.FileHandler
+        filename: scaling.log
+        formatter: simple
+        mode: a
+    formatters:
+      simple:
+        format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
