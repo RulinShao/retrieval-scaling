@@ -155,8 +155,7 @@ model:
 
 **HuggingFace Dense Retrievers**
 
-You can use HuggingFace retrievers by passing its huggingface model name to the corresponding arguments. re_encoder: ???
-```
+You can use HuggingFace retrievers by passing its huggingface model name to the corresponding arguments.
 
 For example, to use [DRAGON-RoBERTa](https://huggingface.co/facebook/dragon-roberta-query-encoder) as the retriever, set
 ```bash
