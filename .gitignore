@@ -6,3 +6,5 @@ outputs/
 *.pkl
 scripts/
 lm_eval.egg-info/
+*.jsonl
+*.sh

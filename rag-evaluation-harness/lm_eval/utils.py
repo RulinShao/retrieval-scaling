@@ -329,6 +329,7 @@ def make_table(result_dict, column: str = "results", sort_results: bool = True, 
     # print(latex_writer.dumps())
 
     if log_path:
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
         with open(log_path, 'a') as fout:
             for value in values:
                 json_object = {k:v for k, v in zip(all_headers, value)}

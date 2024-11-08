@@ -52,8 +52,6 @@ lm_eval/models/vllm_causallms.py
 lm_eval/prompts/__init__.py
 lm_eval/tasks/README.md
 lm_eval/tasks/__init__.py
-lm_eval/tasks/__pycache__/__init__.cpython-310.pyc
-lm_eval/tasks/__pycache__/__init__.cpython-311.pyc
 lm_eval/tasks/aclue/README.md
 lm_eval/tasks/aclue/_default_template_yaml
 lm_eval/tasks/aclue/_generate_configs.py
