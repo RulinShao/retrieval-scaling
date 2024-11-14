@@ -21,7 +21,7 @@ class IVFFlatDatastoreAPI():
     def __init__(self, cfg) -> None:
         self.cfg = cfg
         print(f'\n{OmegaConf.to_yaml(self.cfg)}')
-        self.index = self.load_dpr_wiki_ivf_flat_index()
+        self.index = self.load_ivf_flat_index()
         self.cfg.model.query_encoder = 'facebook/contriever-msmarco' # for debugging
         if "facebook/contriever" in self.cfg.model.query_encoder:
             self.query_encoder, self.query_tokenizer, _ = contriever.src.contriever.load_retriever(self.cfg.model.query_encoder)
@@ -35,21 +35,24 @@ class IVFFlatDatastoreAPI():
         searched_scores, searched_passages, db_ids  = self.index.search(query_embedding, n_docs)
         return {'scores': searched_scores, 'passages': searched_passages, 'IDs': db_ids}
     
-    def load_dpr_wiki_ivf_flat_index(self,):
+    def load_ivf_flat_index(self,):
+        domain = 'rpj_c4'
+        num_shards = 32
+        shard_id = 1
         sample_train_size = 6000000
         projection_size = 768
         ncentroids = 4096
         probe = 4096
         
-        embed_dir = '/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/dpr_wiki/8-shards'
+        embed_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards'
         embed_paths = [os.path.join(embed_dir, filename) for filename in os.listdir(embed_dir) if filename.endswith('.pkl')]
         formatted_index_name = f"index_ivf_flat_ip.{sample_train_size}.{projection_size}.{ncentroids}.faiss"
-        index_dir = '/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/dpr_wiki/8-shards/index_ivf_flat/'
+        index_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards/index_ivf_flat_{shard_id}/'
         os.makedirs(index_dir, exist_ok=True)
         index_path = os.path.join(index_dir, formatted_index_name)
         meta_file = os.path.join(index_dir, formatted_index_name+'.meta')
         trained_index_path = os.path.join(index_dir, formatted_index_name+'.trained')
-        passage_dir = '/checkpoint/amaia/explore/comem/data/massive_ds_1.4t/scaling_out/passages/dpr_wiki/8-shards'
+        passage_dir = f'/checkpoint/amaia/explore/comem/data/massive_ds_1.4t/scaling_out/passages/{domain}/{num_shards}-shards'
         pos_map_save_path = os.path.join(index_dir, 'passage_pos_id_map.pkl')
         index = IVFFlatIndexer(
             embed_paths,
@@ -73,7 +76,7 @@ class IVFFlatDatastoreAPI():
 @hydra.main(config_path="/checkpoint/amaia/explore/rulin/retrieval-scaling/ric/conf", config_name="ivf_flat")
 def get_datastore(cfg):
     ds = IVFFlatDatastoreAPI(cfg)
-    nq_search(ds)
+    test_search(ds)
     return ds
 
 

@@ -68,6 +68,7 @@ class IVFFlatIndexer(object):
         self.num_keys_to_add_at_a_time = num_keys_to_add_at_a_time
 
         if os.path.exists(index_path) and os.path.exists(self.meta_file):
+            print("Loading index...")
             self.index = faiss.read_index(index_path)
             self.index_id_to_db_id = self.load_index_id_to_db_id()
             self.index.nprobe = self.probe
@@ -170,6 +171,12 @@ class IVFFlatIndexer(object):
         
         start_time = time.time()
         for shard_id in range(len(self.embed_paths)):
+            if len(self.embed_paths) == 1: 
+                # hacky fix on single-shard indexing
+                filename = os.path.basename(self.embed_paths[0])
+                match = re.search(r"passages_(\d+)\.pkl", filename)
+                shard_id = int(match.group(1))
+                
             to_add = self.get_embs(shard_id=shard_id).copy()
             index.add(to_add)
             ids_toadd = [[shard_id, chunk_id] for chunk_id in range(len(to_add))]  #TODO: check len(to_add) is correct usage
