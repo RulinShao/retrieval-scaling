@@ -18,31 +18,35 @@ import pdb
 device = 'cuda' if torch.cuda.is_available()  else 'cpu'
 
 class IVFFlatDatastoreAPI():
-    def __init__(self, cfg) -> None:
-        self.cfg = cfg
-        print(f'\n{OmegaConf.to_yaml(self.cfg)}')
-        self.index = self.load_ivf_flat_index()
-        self.cfg.model.query_encoder = 'facebook/contriever-msmarco' # for debugging
-        if "facebook/contriever" in self.cfg.model.query_encoder:
-            self.query_encoder, self.query_tokenizer, _ = contriever.src.contriever.load_retriever(self.cfg.model.query_encoder)
-        elif "dragon" in self.cfg.model.query_encoder:
-            self.query_tokenizer = AutoTokenizer.from_pretrained(self.cfg.model.query_tokenizer)
-            self.query_encoder = AutoModel.from_pretrained(self.cfg.model.query_encoder)
+    def __init__(self, shard_id, cfg) -> None:
+        self.index = self.load_ivf_flat_index(shard_id=shard_id)
+        self.query_encoder, self.query_tokenizer, _ = contriever.src.contriever.load_retriever('facebook/contriever-msmarco')
         self.query_encoder = self.query_encoder.to(device)
+        
+        self.cfg = cfg
+        # print(f'\n{OmegaConf.to_yaml(self.cfg)}')
+        # self.index = self.load_ivf_flat_index(shard_id=shard_id)
+        self.cfg.model.query_encoder = 'facebook/contriever-msmarco' # fixed to contriever before figuring out the issue with dragon query encoder
+        # if "facebook/contriever" in self.cfg.model.query_encoder:
+        #     self.query_encoder, self.query_tokenizer, _ = contriever.src.contriever.load_retriever(self.cfg.model.query_encoder)
+        # elif "dragon" in self.cfg.model.query_encoder:
+        #     self.query_tokenizer = AutoTokenizer.from_pretrained(self.cfg.model.query_tokenizer)
+        #     self.query_encoder = AutoModel.from_pretrained(self.cfg.model.query_encoder)
+        # self.query_encoder = self.query_encoder.to(device)
     
     def search(self, query, n_docs=3):
         query_embedding = self.embed_query(query)
         searched_scores, searched_passages, db_ids  = self.index.search(query_embedding, n_docs)
-        return {'scores': searched_scores, 'passages': searched_passages, 'IDs': db_ids}
+        results = {'scores': searched_scores, 'passages': searched_passages, 'IDs': db_ids}
+        return results
     
-    def load_ivf_flat_index(self,):
+    def load_ivf_flat_index(self, shard_id=0):
         domain = 'rpj_c4'
         num_shards = 32
-        shard_id = 1
         sample_train_size = 6000000
         projection_size = 768
         ncentroids = 4096
-        probe = 4096
+        probe = 128
         
         embed_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards'
         embed_paths = [os.path.join(embed_dir, filename) for filename in os.listdir(embed_dir) if filename.endswith('.pkl')]
@@ -75,8 +79,8 @@ class IVFFlatDatastoreAPI():
 
 @hydra.main(config_path="/checkpoint/amaia/explore/rulin/retrieval-scaling/ric/conf", config_name="ivf_flat")
 def get_datastore(cfg):
-    ds = IVFFlatDatastoreAPI(cfg)
-    test_search(ds)
+    ds = IVFFlatDatastoreAPI(shard_id=0, cfg=cfg)
+    # test_search(ds)
     return ds
 
 

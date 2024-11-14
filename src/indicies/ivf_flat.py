@@ -72,7 +72,7 @@ class IVFFlatIndexer(object):
             self.index = faiss.read_index(index_path)
             self.index_id_to_db_id = self.load_index_id_to_db_id()
             self.index.nprobe = self.probe
-            assert self.index.nprobe==self.index.nlist, f"nlist and nprobe are different {self.index.nprobe},{self.index.nlist}"
+            # assert self.index.nprobe==self.index.nlist, f"nlist and nprobe are different {self.index.nprobe},{self.index.nlist}"
         else:
             self.index_id_to_db_id = []
             if not os.path.exists(self.trained_index_path):
@@ -225,7 +225,7 @@ class IVFFlatIndexer(object):
     def search(self, query_embs, k=4096):
         all_scores, all_indices = self.index.search(query_embs.astype(np.float32), k)
         all_passages, db_ids = self.get_retrieved_passages(all_indices)
-        return all_scores, all_passages, db_ids
+        return all_scores.tolist(), all_passages, db_ids
         
 
 

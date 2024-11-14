@@ -10,7 +10,7 @@ import hydra
 from omegaconf import OmegaConf
 from hydra.core.global_hydra import GlobalHydra
 
-from pes2o_ds import get_datastore
+from massive_ds_ivf_flat import get_datastore
 
 
 def load_config():
@@ -22,7 +22,7 @@ def load_config():
     hydra.initialize(config_path="conf")
 
     # Compose the configuration (this loads the configuration files and merges them)
-    cfg = hydra.compose(config_name="pes2o")
+    cfg = hydra.compose(config_name="ivf_flat")
 
     # Print or use the configuration as needed
     print(OmegaConf.to_yaml(cfg))
@@ -34,7 +34,7 @@ CORS(app)
 
 
 class Item:
-    def __init__(self, query=None, query_embed=None, domains="pes2o", n_docs=1) -> None:
+    def __init__(self, query=None, query_embed=None, domains="MassiveDS", n_docs=1) -> None:
         self.query = query
         self.query_embed = query_embed
         self.domains = domains
@@ -61,7 +61,7 @@ class SearchQueue:
         self.datastore = get_datastore(self.cfg)
 
         self.log_queries = log_queries
-        self.query_log = '/gscratch/scrubbed/rulins/api_query/2024_09_28_queries.jsonl'
+        self.query_log = '/checkpoint/amaia/explore/rulin/api_query_cache/2024_11_14_queries.jsonl'
     
     def search(self, item):
         with self.lock:
@@ -144,3 +144,9 @@ def find_free_port():
 if __name__ == '__main__':
     port = find_free_port()
     app.run(host='0.0.0.0', port=port)
+    
+    """
+    curl -X POST rulin@cw-h100-217-015:38809/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
+    curl -X POST rulin@cw-h100-217-015:58335/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
+    curl -X POST rulin@cw-h100-217-015:36463/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
+    """
