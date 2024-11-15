@@ -77,12 +77,14 @@ class IVFFlatDatastoreAPI():
         return query_embbeding
     
 
-@hydra.main(config_path="/checkpoint/amaia/explore/rulin/retrieval-scaling/ric/conf", config_name="ivf_flat")
-def get_datastore(cfg):
-    ds = IVFFlatDatastoreAPI(shard_id=0, cfg=cfg)
+def get_datastore(cfg, shard_id):
+    ds = IVFFlatDatastoreAPI(shard_id=shard_id, cfg=cfg)
     # test_search(ds)
     return ds
 
+@hydra.main(config_path="/checkpoint/amaia/explore/rulin/retrieval-scaling/ric/conf", config_name="ivf_flat")
+def main(cfg):
+    get_datastore(cfg, 0)
 
 def test_search(ds):
     query = 'when was the last time anyone was on the moon?'  # 'scores': array([[44.3889  , 44.770973, 45.956238]], dtype=float32), 'IDs': [[[5, 45516], [6, 2218998], [5, 897337]]
@@ -131,6 +133,6 @@ def nq_search(ds):
 
 
 if __name__ == '__main__':
-    ds = get_datastore()
+    main()
     
     

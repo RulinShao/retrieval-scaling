@@ -1,3 +1,4 @@
+import os
 import json
 import datetime
 import hydra
@@ -58,7 +59,7 @@ class SearchQueue:
         self.lock = threading.Lock()
         self.current_search = None
         self.cfg = load_config()
-        self.datastore = get_datastore(self.cfg)
+        self.datastore = get_datastore(self.cfg, int(os.getenv('CHUNK_ID')))
 
         self.log_queries = log_queries
         self.query_log = '/checkpoint/amaia/explore/rulin/api_query_cache/2024_11_14_queries.jsonl'
@@ -143,10 +144,24 @@ def find_free_port():
 
 if __name__ == '__main__':
     port = find_free_port()
+    server_id = socket.gethostname()
+    chunk_id = os.getenv('CHUNK_ID')
+    serve_info = {'server_id': server_id, 'port': port, 'chunk_id': int(os.getenv('CHUNK_ID'))}
+    endpoint = f'rulin@{server_id}:{port}/search'
+    print(f'Running at {endpoint}')
+    with open('running_ports.txt', 'a+') as fout:
+        fout.write(f'Chunk: {chunk_id}\n')
+        fout.write(endpoint)
+        fout.write('\n')
+        
+    
     app.run(host='0.0.0.0', port=port)
+    
+    
     
     """
     curl -X POST rulin@cw-h100-217-015:38809/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
     curl -X POST rulin@cw-h100-217-015:58335/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
     curl -X POST rulin@cw-h100-217-015:36463/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
+    curl -X POST rulin@cw-h100-209-129:49667/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
     """
