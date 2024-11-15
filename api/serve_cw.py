@@ -142,7 +142,7 @@ def find_free_port():
         return s.getsockname()[1]  # Return the port number assigned.
 
 
-if __name__ == '__main__':
+def main():
     port = find_free_port()
     server_id = socket.gethostname()
     chunk_id = os.getenv('CHUNK_ID')
@@ -156,12 +156,15 @@ if __name__ == '__main__':
         
     
     app.run(host='0.0.0.0', port=port)
-    
+
+
+if __name__ == '__main__':
+    main()
     
     
     """
     curl -X POST rulin@cw-h100-217-015:38809/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
     curl -X POST rulin@cw-h100-217-015:58335/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
     curl -X POST rulin@cw-h100-217-015:36463/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
-    curl -X POST rulin@cw-h100-209-129:49667/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
+    curl -X POST rulin@cw-h100-209-129:60081/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
     """
