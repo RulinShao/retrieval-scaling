@@ -11,7 +11,7 @@ import hydra
 from omegaconf import OmegaConf
 from hydra.core.global_hydra import GlobalHydra
 
-from massive_ds_ivf_flat import get_datastore
+from wiki_ivf_flat import get_datastore
 
 
 def load_config():
@@ -148,12 +148,12 @@ def find_free_port():
 def main():
     port = find_free_port()
     server_id = socket.gethostname()
-    chunk_id = os.getenv('CHUNK_ID')
+    chunk_id = 0
     serve_info = {'server_id': server_id, 'port': port, 'chunk_id': int(os.getenv('CHUNK_ID'))}
     endpoint = f'rulin@{server_id}:{port}/search'
     print(f'Running at {endpoint}')
     with open('running_ports_c4_wiki.txt', 'a+') as fout:
-        fout.write(f'Chunk: {chunk_id}\n')
+        fout.write(f'Wiki Chunk: 0\n')
         fout.write(endpoint)
         fout.write('\n')
         
@@ -169,5 +169,5 @@ if __name__ == '__main__':
     curl -X POST rulin@cw-h100-217-015:38809/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
     curl -X POST rulin@cw-h100-192-171:36109/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
     curl -X POST rulin@rulin-login-0:49799/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
-    curl -X POST rulin@cw-h100-219-147:55199/search -H "Content-Type: application/json" -d '{"query": "How much money, in euros, was the surgeon held responsible for Stella Obasanjo death ordered to pay her son?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
+    curl -X POST rulin@cw-h100-192-015:44057/search -H "Content-Type: application/json" -d '{"query": "How much money, in euros, was the surgeon held responsible for Stella Obasanjo death ordered to pay her son?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
     """

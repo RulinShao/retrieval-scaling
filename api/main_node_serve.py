@@ -17,8 +17,9 @@ import hydra
 from omegaconf import OmegaConf
 from hydra.core.global_hydra import GlobalHydra
 
+endpoints_list = '/checkpoint/amaia/explore/rulin/retrieval-scaling/running_ports_c4_wiki.txt'
 
-def extract_running_endpoints(file_path='/checkpoint/amaia/explore/rulin/retrieval-scaling/running_ports.txt'):
+def extract_running_endpoints(file_path=endpoints_list):
     """
     Extracts information from a text file and returns it as a list.
     Args:
@@ -56,7 +57,7 @@ def rerank_elements(element_list, k=-1):
             concatenated_element['passage'].append(element['passages'][0][i])
             concatenated_element['score'].append(element['scores'][0][i])
     # Rerank the values based on the scores in descending order
-    sorted_indices = sorted(range(len(concatenated_element['score'])), key=lambda k: concatenated_element['score'][k], reverse=True)
+    sorted_indices = sorted(range(len(concatenated_element['score'])), key=lambda k: concatenated_element['score'][k], reverse=False)  # The lower the score, the more relevant.
     reranked_element = {
         'IDs': [[concatenated_element['ID'][i] for i in sorted_indices][:k]],
         'passages': [[concatenated_element['passage'][i] for i in sorted_indices][:k]],
@@ -230,7 +231,11 @@ class SearchQueue:
                     formatted_time = now.strftime('%Y-%m-%d %H:%M:%S')
                     with open(self.query_log, 'a+') as fin:
                         fin.write(json.dumps({'time': formatted_time, 'query': item.query})+'\n')
-                results = main_node_multithread_search(item.query, item.n_docs)
+                try:
+                    results = main_node_multithread_search(item.query, item.n_docs)
+                except Exception as e:
+                    print("An error occured: {e}")
+                    return {{"message": f"An error occured: {e}"}}
                 self.current_search = None
                 return results
             else:
@@ -304,6 +309,12 @@ if __name__ == '__main__':
     server_id = socket.gethostname()
     endpoint = f'rulin@{server_id}:{port}/search'
     print(endpoint)
+    
+    with open('running_ports_main_node.txt', 'a+') as fout:
+        fout.write(f'Endpoints: {endpoints_list}\n')
+        fout.write(endpoint)
+        fout.write('\n')
+    
     app.run(host='0.0.0.0', port=port)
     
     

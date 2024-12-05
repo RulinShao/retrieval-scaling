@@ -41,10 +41,10 @@ class IVFFlatDatastoreAPI():
         return results
     
     def load_ivf_flat_index(self, shard_id=0):
-        # domain = 'dpr_wiki'
-        # num_shards = 1
-        domain = 'rpj_c4'
-        num_shards = 32
+        domain = 'dpr_wiki'
+        num_shards = 1
+        # domain = 'rpj_c4'
+        # num_shards = 32
         sample_train_size = 6000000
         projection_size = 768
         ncentroids = 4096
