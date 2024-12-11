@@ -166,8 +166,8 @@ if __name__ == '__main__':
     
     
     """
-    curl -X POST rulin@cw-h100-217-015:38809/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
+    curl -X POST rulin@cw-h100-211-159:49253/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "MassiveDS", "subsample_ratio": 0.5}'
     curl -X POST rulin@cw-h100-192-171:36109/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
-    curl -X POST rulin@rulin-login-0:49799/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
+    curl -X POST rulin@cw-h100-205-027:32943/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
     curl -X POST rulin@cw-h100-219-147:55199/search -H "Content-Type: application/json" -d '{"query": "How much money, in euros, was the surgeon held responsible for Stella Obasanjo death ordered to pay her son?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
     """

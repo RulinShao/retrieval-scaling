@@ -4,6 +4,8 @@ import requests
 import pdb
 import os
 import json
+import random
+import pdb
 import datetime
 import hydra
 import socket
@@ -66,6 +68,31 @@ def rerank_elements(element_list, k=-1):
     return reranked_element
 
 
+def subsample_by_coin_flip(data, probability):
+    """Subsample data by flipping a coin with a given probability."""
+    return [item for item in data if random.random() < probability]
+
+def apply_coin_flip_subsampling(reranked_element, probability):
+    # Assuming the lists are of the same length
+    length = len(reranked_element['IDs'][0])
+    
+    # Generate a mask for which indices to keep
+    mask = [random.random() < probability for _ in range(length)]
+    
+    # Apply the mask to each list
+    subsampled_ids = [id_ for id_, keep in zip(reranked_element['IDs'][0], mask) if keep]
+    subsampled_passages = [passage for passage, keep in zip(reranked_element['passages'][0], mask) if keep]
+    subsampled_scores = [score for score, keep in zip(reranked_element['scores'][0], mask) if keep]
+    
+    # Update the reranked_element with the subsampled lists
+    reranked_element['IDs'] = subsampled_ids
+    reranked_element['passages'] = subsampled_passages
+    reranked_element['scores'] = subsampled_scores
+    
+    print(f"Before subsampling: {length}, after subsampling: {len(subsampled_ids)}")
+    return reranked_element
+
+
 def test_main_node():
     json_data = {
         'query': 'retrieval-augmented language model',
@@ -118,11 +145,12 @@ CORS(app)
 
 
 class Item:
-    def __init__(self, query=None, query_embed=None, domains="MassiveDS", n_docs=1) -> None:
+    def __init__(self, query=None, query_embed=None, domains="MassiveDS", n_docs=1, subsample_ratio=1.0) -> None:
         self.query = query
         self.query_embed = query_embed
         self.domains = domains
         self.n_docs = n_docs
+        self.subsample_ratio = subsample_ratio
         self.searched_results = None
     
     def get_dict(self,):
@@ -179,7 +207,7 @@ def fetch_endpoint(endpoint, json_data, headers):
     response = requests.post('http://' + endpoint, json=json_data, headers=headers)
     return response.json()['results']
 
-def main_node_multithread_search(query, n_docs):
+def main_node_multithread_search(query, n_docs, subsample_ratio=1.0):
     """
     Search multiple nodes and aggregate results.
     
@@ -190,10 +218,23 @@ def main_node_multithread_search(query, n_docs):
     Returns:
         dict: The aggregated search results.
     """
+    if subsample_ratio >= 0.5:
+        K = 300
+    elif subsample_ratio >= 0.25:
+        K = 600
+    elif subsample_ratio >= 0.125:
+        K = 1500
+    elif subsample_ratio >= 0.0625:
+        K = 2500
+    elif subsample_ratio >= 0.03125:
+        K = 5000
+    else:
+        K = 10000
+    
     json_data = {
         'query': query,
-        "n_docs": n_docs,
-        "domains": "rpj_c4 (nprobes=128)"
+        "n_docs": n_docs if subsample_ratio == 1.0 else K,
+        "domains": "MassiveDS"
     }
     headers = {"Content-Type": "application/json"}
     endpoints = extract_running_endpoints()
@@ -203,7 +244,20 @@ def main_node_multithread_search(query, n_docs):
         all_responses = [future.result() for future in futures]
     
     print(f"Searched from {len(all_responses)} shards.")
-    sorted_elements = rerank_elements(all_responses, k=n_docs)
+    if subsample_ratio > 1 or subsample_ratio < 0:
+        sorted_elements = {'Error message': f'Error: subsample ratio should be set between 0 and 1, but got {subsample_ratio}.'}
+    else:
+        sorted_elements = rerank_elements(all_responses, k=n_docs if subsample_ratio == 1.0 else K)
+    
+    if subsample_ratio != 1:
+        print(f"Subsampling {subsample_ratio} documents.")
+        sorted_elements = apply_coin_flip_subsampling(sorted_elements, subsample_ratio)
+        sorted_elements = {
+                'IDs': [sorted_elements['IDs'][:n_docs]],
+                'passages': [sorted_elements['passages'][:n_docs]],
+                'scores': [sorted_elements['scores'][:n_docs]],
+            }
+        
     updated_response = {'n_docs': n_docs, 
                         'query': query, 
                         'results': sorted_elements,
@@ -231,11 +285,7 @@ class SearchQueue:
                     formatted_time = now.strftime('%Y-%m-%d %H:%M:%S')
                     with open(self.query_log, 'a+') as fin:
                         fin.write(json.dumps({'time': formatted_time, 'query': item.query})+'\n')
-                try:
-                    results = main_node_multithread_search(item.query, item.n_docs)
-                except Exception as e:
-                    print("An error occured: {e}")
-                    return {{"message": f"An error occured: {e}"}}
+                results = main_node_multithread_search(item.query, item.n_docs, item.subsample_ratio)
                 self.current_search = None
                 return results
             else:
@@ -259,11 +309,21 @@ threading.Thread(target=search_queue.process_queue, daemon=True).start()
 
 @app.route('/search', methods=['POST'])
 def search():
-    item = Item(
-        query=request.json['query'],
-        domains=request.json['domains'],
-        n_docs=request.json['n_docs'],
-    )
+    request_json = request.json
+    if 'subsample_ratio' in request_json:
+        item = Item(
+            query=request_json['query'],
+            domains=request_json['domains'],
+            n_docs=request_json['n_docs'],
+            subsample_ratio=request_json['subsample_ratio']
+        )
+        print(item)
+    else:
+        item = Item(
+            query=request_json['query'],
+            domains=request_json['domains'],
+            n_docs=request_json['n_docs'],
+        )
     # Perform the search synchronously, but queue if another search is in progress
     results = search_queue.search(item)
     print(results)
