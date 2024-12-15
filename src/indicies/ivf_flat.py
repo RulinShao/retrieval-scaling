@@ -145,6 +145,7 @@ class IVFFlatIndexer(object):
         start_index = faiss.IndexIVFFlat(quantizer,
                                        self.dimension,
                                        self.ncentroids,
+                                       faiss.METRIC_INNER_PRODUCT
                                        )
         start_index.nprobe = self.probe
         np.random.seed(1)

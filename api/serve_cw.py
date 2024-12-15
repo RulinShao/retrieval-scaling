@@ -1,5 +1,6 @@
 import os
 import json
+import traceback
 import datetime
 import hydra
 import socket
@@ -97,13 +98,13 @@ threading.Thread(target=search_queue.process_queue, daemon=True).start()
 
 @app.route('/search', methods=['POST'])
 def search():
-    item = Item(
-        query=request.json['query'],
-        domains=request.json['domains'],
-        n_docs=request.json['n_docs'],
-    )
-    # Perform the search synchronously, but queue if another search is in progress
     try:
+        item = Item(
+            query=request.json['query'],
+            domains=request.json['domains'],
+            n_docs=request.json['n_docs'],
+        )
+        # Perform the search synchronously, but queue if another search is in progress
         results = search_queue.search(item)
         print(results)
         return jsonify({
@@ -113,7 +114,9 @@ def search():
             "results": results,
         }), 200
     except Exception as e:
-        return jsonify({"message": f"An error occured: {e}"}), -1
+        tb_lines = traceback.format_exception(e.__class__, e, e.__traceback__)
+        error_message = f"An error occurred: {str(e)}\n{''.join(tb_lines)}"
+        return jsonify({"message": error_message}), 500
 
 @app.route('/current_search')
 def current_search():
@@ -152,7 +155,7 @@ def main():
     serve_info = {'server_id': server_id, 'port': port, 'chunk_id': int(os.getenv('CHUNK_ID'))}
     endpoint = f'rulin@{server_id}:{port}/search'
     print(f'Running at {endpoint}')
-    with open('running_ports_c4_wiki.txt', 'a+') as fout:
+    with open('running_ports_c4_wiki_ip_fixed.txt', 'a+') as fout:
         fout.write(f'Chunk: {chunk_id}\n')
         fout.write(endpoint)
         fout.write('\n')
@@ -166,8 +169,8 @@ if __name__ == '__main__':
     
     
     """
-    curl -X POST rulin@cw-h100-211-159:49253/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "MassiveDS", "subsample_ratio": 0.5}'
-    curl -X POST rulin@cw-h100-192-171:36109/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
-    curl -X POST rulin@cw-h100-205-027:32943/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
-    curl -X POST rulin@cw-h100-219-147:55199/search -H "Content-Type: application/json" -d '{"query": "How much money, in euros, was the surgeon held responsible for Stella Obasanjo death ordered to pay her son?", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
+    curl -X POST rulin@cw-h100-192-033:60243/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "MassiveDS", "subsample_ratio": 0.5}'
+    curl -X POST rulin@cw-h100-192-033:37439/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
+    curl -X POST rulin@cw-h100-192-033:37439/search -H "Content-Type: application/json" -d '{"query": "2019 IIHF World U18 Championships 2019 IIHF World U18 Championships The 2019 Men's World U18 Ice Hockey Championships will be the 21rd such event hosted by the International Ice Hockey Federation. Teams will participate at several levels of competition. The competition will also serve as qualifications for the 2020 competition. One national teams, Luxembourg, will play in the World Championships for the first time in 2019. \"All times are local (UTC+2).\" The Group A tournament will be held in Grenoble, France from 14 to 20 April 2019. The Group B tournament will be held in Szekesfehervar, Hungary from 14 to 20 April 2019. The Group", "n_docs": 1, "domains": "rpj_c4 (nprobe=128)"}'
+    curl -X POST rulin@cw-h100-196-057:51591/search -H "Content-Type: application/json" -d '{"query": "How much money, in euros, was the surgeon held responsible for Stella Obasanjo death ordered to pay her son?", "n_docs": 2, "domains": "rpj_c4 (nprobe=128)"}'
     """

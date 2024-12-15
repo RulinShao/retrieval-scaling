@@ -1,6 +1,7 @@
 import os
 import json
 import datetime
+import traceback
 import hydra
 import socket
 from flask import Flask, jsonify, request
@@ -97,13 +98,13 @@ threading.Thread(target=search_queue.process_queue, daemon=True).start()
 
 @app.route('/search', methods=['POST'])
 def search():
-    item = Item(
-        query=request.json['query'],
-        domains=request.json['domains'],
-        n_docs=request.json['n_docs'],
-    )
-    # Perform the search synchronously, but queue if another search is in progress
     try:
+        item = Item(
+            query=request.json['query'],
+            domains=request.json['domains'],
+            n_docs=request.json['n_docs'],
+        )
+        # Perform the search synchronously, but queue if another search is in progress
         results = search_queue.search(item)
         print(results)
         return jsonify({
@@ -113,7 +114,9 @@ def search():
             "results": results,
         }), 200
     except Exception as e:
-        return jsonify({"message": f"An error occured: {e}"}), -1
+        tb_lines = traceback.format_exception(e.__class__, e, e.__traceback__)
+        error_message = f"An error occurred: {str(e)}\n{''.join(tb_lines)}"
+        return jsonify({"message": error_message}), 500
 
 @app.route('/current_search')
 def current_search():
@@ -152,7 +155,7 @@ def main():
     serve_info = {'server_id': server_id, 'port': port, 'chunk_id': int(os.getenv('CHUNK_ID'))}
     endpoint = f'rulin@{server_id}:{port}/search'
     print(f'Running at {endpoint}')
-    with open('running_ports_c4_wiki.txt', 'a+') as fout:
+    with open('running_ports_wiki_ip_fixed.txt', 'a+') as fout:
         fout.write(f'Wiki Chunk: 0\n')
         fout.write(endpoint)
         fout.write('\n')

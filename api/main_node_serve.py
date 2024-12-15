@@ -1,6 +1,7 @@
 
 
 import requests
+import traceback
 import pdb
 import os
 import json
@@ -19,7 +20,7 @@ import hydra
 from omegaconf import OmegaConf
 from hydra.core.global_hydra import GlobalHydra
 
-endpoints_list = '/checkpoint/amaia/explore/rulin/retrieval-scaling/running_ports_c4_wiki.txt'
+endpoints_list = '/checkpoint/amaia/explore/rulin/retrieval-scaling/running_ports_c4_wiki_ip_fixed.txt'
 
 def extract_running_endpoints(file_path=endpoints_list):
     """
@@ -59,7 +60,7 @@ def rerank_elements(element_list, k=-1):
             concatenated_element['passage'].append(element['passages'][0][i])
             concatenated_element['score'].append(element['scores'][0][i])
     # Rerank the values based on the scores in descending order
-    sorted_indices = sorted(range(len(concatenated_element['score'])), key=lambda k: concatenated_element['score'][k], reverse=False)  # The lower the score, the more relevant.
+    sorted_indices = sorted(range(len(concatenated_element['score'])), key=lambda k: concatenated_element['score'][k], reverse=True) # set to True if the higher the better and vice versa
     reranked_element = {
         'IDs': [[concatenated_element['ID'][i] for i in sorted_indices][:k]],
         'passages': [[concatenated_element['passage'][i] for i in sorted_indices][:k]],
@@ -309,30 +310,36 @@ threading.Thread(target=search_queue.process_queue, daemon=True).start()
 
 @app.route('/search', methods=['POST'])
 def search():
-    request_json = request.json
-    if 'subsample_ratio' in request_json:
-        item = Item(
-            query=request_json['query'],
-            domains=request_json['domains'],
-            n_docs=request_json['n_docs'],
-            subsample_ratio=request_json['subsample_ratio']
-        )
-        print(item)
-    else:
-        item = Item(
-            query=request_json['query'],
-            domains=request_json['domains'],
-            n_docs=request_json['n_docs'],
-        )
-    # Perform the search synchronously, but queue if another search is in progress
-    results = search_queue.search(item)
-    print(results)
-    return jsonify({
-        "message": f"Search completed for '{item.query}' from {item.domains}",
-        "query": item.query,
-        "n_docs": item.n_docs,
-        "results": results,
-    }), 200
+    try:
+        request_json = request.json
+        if 'subsample_ratio' in request_json:
+            item = Item(
+                query=request_json['query'],
+                domains=request_json['domains'],
+                n_docs=request_json['n_docs'],
+                subsample_ratio=request_json['subsample_ratio']
+            )
+            print(item)
+        else:
+            item = Item(
+                query=request_json['query'],
+                domains=request_json['domains'],
+                n_docs=request_json['n_docs'],
+            )
+        # Perform the search synchronously, but queue if another search is in progress
+        results = search_queue.search(item)
+        print(results)
+        return jsonify({
+            "message": f"Search completed for '{item.query}' from {item.domains}",
+            "query": item.query,
+            "n_docs": item.n_docs,
+            "results": results,
+        }), 200
+    
+    except Exception as e:
+        tb_lines = traceback.format_exception(e.__class__, e, e.__traceback__)
+        error_message = f"An error occurred: {str(e)}\n{''.join(tb_lines)}"
+        return jsonify({"message": error_message}), 500
 
 @app.route('/current_search')
 def current_search():

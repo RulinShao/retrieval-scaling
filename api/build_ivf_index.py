@@ -13,11 +13,11 @@ def build_ivf_flat_index(domain, num_shards, shard_id=None):
     embed_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards'
     if shard_id is not None:
         embed_paths = [os.path.join(embed_dir, f'passages_{shard_id:02}.pkl')]
-        index_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards/index_ivf_flat_{shard_id}/'
+        index_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards/index_ivf_flat_ip_fixed_{shard_id}/'
         passage_dir = f'/checkpoint/amaia/explore/comem/data/massive_ds_1.4t/scaling_out/passages/{domain}/{num_shards}-shards/raw_passages-{shard_id}-of-{num_shards}.pkl'
     else:
         embed_paths = [os.path.join(embed_dir, filename) for filename in os.listdir(embed_dir) if filename.endswith('.pkl')]
-        index_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards/index_ivf_flat/'
+        index_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards/index_ivf_flat_ip_fixed/'
         passage_dir = f'/checkpoint/amaia/explore/comem/data/massive_ds_1.4t/scaling_out/passages/{domain}/{num_shards}-shards'
     os.makedirs(index_dir, exist_ok=True)
     formatted_index_name = f"index_ivf_flat_ip.{sample_train_size}.{projection_size}.{ncentroids}.faiss"

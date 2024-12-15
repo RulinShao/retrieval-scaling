@@ -91,9 +91,9 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
     
     print(f"Questions embeddings shape: {embeddings.shape}")
 
-    if args.get('cache_query_embedding', False):
-        with open(args.query_embedding_save_path, 'wb') as fout:
-            pkl.dump(embeddings, fout)
+    # if args.get('cache_query_embedding', False):
+    #     with open(args.query_embedding_save_path, 'wb') as fout:
+    #         pkl.dump(embeddings, fout)
 
     return embeddings
 

@@ -36,6 +36,7 @@ class IVFFlatDatastoreAPI():
     
     def search(self, query, n_docs=3):
         query_embedding = self.embed_query(query)
+        # import pdb; pdb.set_trace()
         searched_scores, searched_passages, db_ids  = self.index.search(query_embedding, n_docs)
         results = {'scores': searched_scores, 'passages': searched_passages, 'IDs': db_ids}
         return results
@@ -53,7 +54,7 @@ class IVFFlatDatastoreAPI():
         embed_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards'
         embed_paths = [os.path.join(embed_dir, filename) for filename in os.listdir(embed_dir) if filename.endswith('.pkl')]
         formatted_index_name = f"index_ivf_flat_ip.{sample_train_size}.{projection_size}.{ncentroids}.faiss"
-        index_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards/index_ivf_flat_{shard_id}/'
+        index_dir = f'/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/{domain}/{num_shards}-shards/index_ivf_flat_ip_fixed_{shard_id}/'
         os.makedirs(index_dir, exist_ok=True)
         index_path = os.path.join(index_dir, formatted_index_name)
         meta_file = os.path.join(index_dir, formatted_index_name+'.meta')
