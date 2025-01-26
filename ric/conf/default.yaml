@@ -23,10 +23,19 @@ model:
 datastore:
   domain: ???
   raw_data_path: null
+  raw_data_key: text
   chunk_size: 256  # chunk size in number of words
+  chunking_strategy: fixed_size  # support "fixed_size" or "semantic"
+  keep_raw_metadata: true
+  use_passage_pos_id_map: false
   
   embedding:
     raw_data_path: ${datastore.raw_data_path}
+    raw_data_key: ${datastore.raw_data_key}
+    chunking_strategy: ${datastore.chunking_strategy}
+    keep_raw_metadata: ${datastore.keep_raw_metadata}
+    use_passage_pos_id_map: ${datastore.use_passage_pos_id_map}
+
     shard_ids: [0]
     num_shards: 1
     chunk_size: ${datastore.chunk_size}

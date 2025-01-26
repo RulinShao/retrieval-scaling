@@ -23,7 +23,6 @@ import contriever.src.slurm
 from contriever.src.evaluation import calculate_matches
 import contriever.src.normalize_text
 
-from src.data import fast_load_jsonl_shard
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 

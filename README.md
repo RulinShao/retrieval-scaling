@@ -27,6 +27,12 @@ This codebase contains:
 3. A comprehensive evaluation suite for retrieval-based LMs ([Evaluation](#evaluation)| [RAG-Evaluation-Harnesses](https://github.com/RulinShao/RAG-evaluation-harnesses)).
 
 
+# Latest Update 🔥
+* [2025/01] We support a new hashing-based passage loading method that could load the passage from disk by passage ID **without loading the full passages in RAM**, which will greatly reduce the memory requirement for large datastore serving. Set `datastore.use_passage_pos_id_map=true` to turn it on!
+* [2025/01] We now support semantic chunking which chunks the data based on semantic boundaries. Set `datastore.chunking_strategy="semantic"` to give it a try! It takes `datastore.chunk_size` as the maximum number of tokens it should accomodate. 
+* [2024/12] We added API serving codes with support for multiple index types, i.e., Flat and IVF_Flat in the current version. Find instructions in `api/` folder.
+
+
 ## Installation
 Install dependent Python libraries by running the command below.
 

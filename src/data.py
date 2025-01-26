@@ -8,10 +8,11 @@ import pdb
 
 import numpy as np
 import transformers
+from src.indicies.index_utils import convert_pkl_to_jsonl, get_passage_pos_ids
 
 
 ############################## Training ##############################
-def fast_load_jsonl_shard(args, shard_index):
+def fast_load_jsonl_shard(args, shard_index, return_all_passages=True):
     """
     This function is designed to handle large datasets by only loading the specific portion of data (shard) that 
     corresponds to the given shard index.
@@ -21,18 +22,53 @@ def fast_load_jsonl_shard(args, shard_index):
     based on `chunk_sz`, and appends each chunk to a list with an incremental ID.
     """
     raw_data_path = args.raw_data_path
+    raw_data_key = args.get('raw_data_key', 'text')
     num_shards = args.num_shards
     chunk_sz = args.chunk_size
     min_chunk_sz = args.get('min_chunk_sz', 0)
     keep_last = args.get('keep_last_chunk', True)
-
-    passage_shard_save_path = os.path.join(args.passages_dir, f'raw_passages-{shard_index}-of-{num_shards}.pkl')
+    chunking_strategy = args.get('chunking_strategy', 'fixed_size')
+    keep_raw_metadata = args.get('keep_raw_metadata', True)
+    use_passage_pos_id_map = args.get('use_passage_pos_id_map', False)
     
-    if os.path.exists(passage_shard_save_path):
-        logging.info(f'Loading from {passage_shard_save_path}...')
-        with open(passage_shard_save_path, 'rb') as file:
-            passages = pickle.load(file)
-        return passages
+    if not return_all_passages:
+        assert use_passage_pos_id_map, f"You must set `use_passage_pos_id_map=True` to enable efficient passage loading!"
+
+    if use_passage_pos_id_map:
+        passage_shard_save_path = os.path.join(args.passages_dir, f'raw_passages-{shard_index}-of-{num_shards}.jsonl')
+        pos_map_save_path = os.path.join(args.passages_dir, 'passage_pos_id_map.pkl')
+
+        if not return_all_passages:
+            if os.path.exists(pos_map_save_path):
+                with open(pos_map_save_path, 'rb') as f:
+                    passage_pos_ids = pickle.load(f)
+                return  passage_pos_ids
+            else:
+                # If all jsonl data has been built, construct passage_pos_ids and return it
+                all_data_exist = True
+                for _shard_index in range(num_shards):
+                    passage_shard_save_path_to_check = os.path.join(args.passages_dir, f'raw_passages-{_shard_index}-of-{num_shards}.jsonl')
+                    if not os.path.exists(passage_shard_save_path_to_check):
+                        all_data_exist = False
+                if all_data_exist: 
+                    passage_pos_ids = get_passage_pos_ids(args.passages_dir, pos_map_save_path)
+                    return  passage_pos_ids
+        
+        elif os.path.exists(passage_shard_save_path):
+            passages = []
+            with open(passage_shard_save_path, 'r') as fin:
+                for line in fin:
+                    passages.append(json.loads(line))
+            return passages
+            
+    else:
+        passage_shard_save_path = os.path.join(args.passages_dir, f'raw_passages-{shard_index}-of-{num_shards}.pkl')
+    
+        if os.path.exists(passage_shard_save_path):
+            logging.info(f'Loading from {passage_shard_save_path}...')
+            with open(passage_shard_save_path, 'rb') as file:
+                passages = pickle.load(file)
+            return passages
 
     if not os.path.exists(raw_data_path):
         logging.info(f"{raw_data_path} does not exist")
@@ -80,24 +116,57 @@ def fast_load_jsonl_shard(args, shard_index):
                 line = file.readline().strip()
                 if line:
                     ex = json.loads(line)
-                    chunks = split_data_into_chunks(ex['text'].strip(), chunk_sz, min_chunk_sz, keep_last)
+                    chunks = split_data_into_chunks(ex[raw_data_key].strip(), chunk_sz, min_chunk_sz, keep_last, chunking_strategy)
                     for chunk in chunks:
-                        passages.append({
-                            "text": chunk,
-                            "id": idx,
-                            "shard_id": shard_index,
-                            "num_shards": num_shards,
-                        })
+                        if keep_raw_metadata:
+                            # keep the original metadata in the updated raw
+                            passage = dict(ex)
+                            passage.update({
+                                "text": chunk,
+                                "id": idx,
+                                "shard_id": shard_index,
+                                "num_shards": num_shards,
+                            })
+                            passages.append(passage)
+                        else:
+                            # raw metadata will be discarded
+                            passages.append({
+                                "text": chunk,
+                                "id": idx,
+                                "shard_id": shard_index,
+                                "num_shards": num_shards,
+                            })
+                        idx += 1
                         idx += 1
                 else:
                     break
     
     if args.get('passages_dir', None):
         os.makedirs(args.passages_dir, exist_ok=True)
-        with open(passage_shard_save_path, 'wb') as file:
-            pickle.dump(passages, file)
+        if use_passage_pos_id_map:
+            with open(passage_shard_save_path, 'w') as file:
+                for passage in passages:
+                    file.write(json.dumps(passage)+'\n')
+            
+            # If all jsonl data has been built, construct passage_pos_ids and return it
+            all_data_exist = True
+            for _shard_index in range(num_shards):
+                passage_shard_save_path_to_check = os.path.join(args.passages_dir, f'raw_passages-{_shard_index}-of-{num_shards}.jsonl')
+                if not os.path.exists(passage_shard_save_path_to_check):
+                    all_data_exist = False
+            if all_data_exist: 
+                passage_pos_ids = get_passage_pos_ids(args.passages_dir, pos_map_save_path)
+            
+        else:
+            with open(passage_shard_save_path, 'wb') as file:
+                pickle.dump(passages, file)
 
-    return passages
+    if return_all_passages:
+        return passages
+    else:
+        return passage_pos_ids
+
+
 
 # Used for passage retrieval (old, inefficient bc it needs load the whole data)
 def load_passages(path, chunk_sz=None, min_chunk_sz=0, keep_last=True, num_load_files=None):
@@ -173,19 +242,24 @@ def load_passages(path, chunk_sz=None, min_chunk_sz=0, keep_last=True, num_load_
     return passages
 
 
-def split_data_into_chunks(text, chunk_sz, min_chunk_sz, keep_last):
+def split_data_into_chunks(text, chunk_sz, min_chunk_sz, keep_last, chunking_strategy='fixed_size'):
     # returns chunks of size <= chunk_sz + min_chunk_sz
     if chunk_sz is None:
         return [text]
     
-    text = text.split()
-    N = len(text) if keep_last else len(text)-len(text)%chunk_sz
-    chunks = [' '.join(text[i:i+chunk_sz]) for i in range(0,N,chunk_sz)]
+    if chunking_strategy == 'fixed_size':
+        text = text.split()
+        N = len(text) if keep_last else len(text)-len(text)%chunk_sz
+        chunks = [' '.join(text[i:i+chunk_sz]) for i in range(0,N,chunk_sz)]
 
-    if len(chunks) > 1 and len(chunks[-1].split(' ')) < min_chunk_sz:
-        # merge the last min_chunk_sz words to the previous chunk
-        last_chunk = chunks.pop()
-        chunks[-1] += ' ' + last_chunk
+        if len(chunks) > 1 and len(chunks[-1].split(' ')) < min_chunk_sz:
+            # merge the last min_chunk_sz words to the previous chunk
+            last_chunk = chunks.pop()
+            chunks[-1] += ' ' + last_chunk
+    elif chunking_strategy == 'semantic':
+        from semantic_text_splitter import TextSplitter
+        splitter = TextSplitter.from_tiktoken_model("gpt-3.5-turbo", chunk_sz)
+        chunks = splitter.chunks(text)
 
     return chunks
 

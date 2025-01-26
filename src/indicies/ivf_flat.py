@@ -24,7 +24,6 @@ import contriever.src.slurm
 from contriever.src.evaluation import calculate_matches
 import contriever.src.normalize_text
 
-from src.data import fast_load_jsonl_shard
 from src.indicies.index_utils import convert_pkl_to_jsonl, get_passage_pos_ids
 
 

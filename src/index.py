@@ -388,7 +388,7 @@ def get_index_passages_and_id_map(cfg, index_shard_ids=None):
     passage_id_map = {}
     offset = 0
     for shard_id in index_shard_ids:
-        shard_passages = fast_load_jsonl_shard(cfg.datastore.embedding, shard_id)
+        shard_passages = fast_load_jsonl_shard(cfg.datastore.embedding, shard_id, return_all_passages=True)
         shard_id_map = {str(x["id"]+offset): x for x in shard_passages}
         
         offset += len(shard_passages)

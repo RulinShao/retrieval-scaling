@@ -136,7 +136,7 @@ def generate_passage_embeddings(cfg):
                 print(f"Embeddings exist in {embedding_shard_save_path}")
                 continue
             
-            shard_passages = fast_load_jsonl_shard(args, shard_id)
+            shard_passages = fast_load_jsonl_shard(args, shard_id, return_all_passages=True)
 
             allids, allembeddings = embed_passages(args, shard_passages, model, tokenizer)
 
