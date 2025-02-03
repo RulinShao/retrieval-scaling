@@ -137,7 +137,6 @@ def fast_load_jsonl_shard(args, shard_index, return_all_passages=True):
                                 "num_shards": num_shards,
                             })
                         idx += 1
-                        idx += 1
                 else:
                     break
     
