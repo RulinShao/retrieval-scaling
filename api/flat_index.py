@@ -56,7 +56,7 @@ def get_datastore(cfg, shard_id):
     # test_search(ds)
     return ds
 
-@hydra.main(config_path="/home/rulin/retrieval-scaling/ric/conf/", config_name="pes2o")
+@hydra.main(config_path="/home/rulin/retrieval-scaling/ric/conf/", config_name="thoughts_flat")
 def main(cfg):
     get_datastore(cfg, 0)
 

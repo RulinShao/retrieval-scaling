@@ -23,7 +23,7 @@ def load_config():
     hydra.initialize(config_path="conf/")
 
     # Compose the configuration (this loads the configuration files and merges them)
-    cfg = hydra.compose(config_name="pes2o")
+    cfg = hydra.compose(config_name="thoughts_flat")
 
     # Print or use the configuration as needed
     print(OmegaConf.to_yaml(cfg))
@@ -161,4 +161,6 @@ if __name__ == '__main__':
     main()
     
     
-    
+    """
+    curl -X POST rulin@a100-st-p4de24xlarge-219:50001/search -H "Content-Type: application/json" -d '{"query": "We add the number of students from each class to find the total number of students taking the AMC 8.  11 + 8 + 9 = 28  4.", "n_docs": 3, "domains": "thoughts"}'
+    """
