@@ -3,6 +3,34 @@ import pickle
 import json
 from tqdm import tqdm
 import re
+import glob
+
+
+def get_index_dir_and_embedding_paths(cfg, index_shard_ids=None):
+    embedding_args = cfg.datastore.embedding
+    index_args = cfg.datastore.index
+    index_type = cfg.datastore.index.index_type
+
+    # index passages
+    index_shard_ids = index_shard_ids if index_shard_ids is not None else index_args.get('index_shard_ids', None)
+    if index_shard_ids:
+        index_shard_ids = [int(i) for i in index_shard_ids]
+        embedding_paths = [os.path.join(embedding_args.embedding_dir, embedding_args.prefix + f"_{shard_id:02d}.pkl")
+                       for shard_id in index_shard_ids]
+
+        # name the index dir with all shard ids included in this index, i.e., one index for multiple passage shards
+        index_dir_name = '_'.join([str(shard_id) for shard_id in sorted(index_shard_ids)])
+        index_dir = os.path.join(os.path.dirname(embedding_paths[0]), f'index_{index_type}/{index_dir_name}')
+        
+    else:
+        embedding_paths = glob.glob(index_args.passages_embeddings)
+        embedding_paths = sorted(embedding_paths, key=lambda x: int(x.split('/')[-1].split(f'{embedding_args.prefix}_')[-1].split('.pkl')[0]))  # must sort based on the integer number
+        embedding_paths = embedding_paths if index_args.num_subsampled_embedding_files == -1 else embedding_paths[0:index_args.num_subsampled_embedding_files]
+        
+        index_dir = os.path.join(os.path.dirname(embedding_paths[0]), f'index_{index_type}')
+    
+    return index_dir, embedding_paths
+
 
 
 def convert_pkl_to_jsonl(passage_dir):

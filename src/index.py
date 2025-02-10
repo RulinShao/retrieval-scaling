@@ -231,7 +231,7 @@ class IndexPQIVF(object):
                                            self.dimension,
                                            self.ncentroids,
                                            self.code_size,
-                                           8)
+                                           8)  # 8 specifies that each sub-vector is encoded as 8 bits
         elif self.index_type == "pq":
             print("Building index with PQ")
             start_index = faiss.IndexPQ(self.dimension,
