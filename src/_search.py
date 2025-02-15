@@ -32,7 +32,7 @@ from contriever.src.evaluation import calculate_matches
 import contriever.src.normalize_text
 
 from src.data import load_eval_data
-from src.index import Indexer, get_index_dir_and_passage_paths, get_index_passages_and_id_map, get_bm25_index_dir
+from src._index import Indexer, get_bm25_index_dir
 from src.decontamination import check_below_lexical_overlap_threshold
 try:
     from utils.deduplication import remove_duplicates_with_minhash, multiprocess_deduplication
@@ -119,15 +119,17 @@ def add_passages_to_eval_data(data, passages, scores, db_ids, valid_query_idx, d
     idx = 0
     for i, d in enumerate(data):
         if i in valid_query_idx:
-            docs = passages
-            scores = [str(score) for score in scores]
-            ctxs_num = len(docs)
+            ex_scores = scores[idx]
+            if isinstance(scores[idx], str):
+                import pdb; pdb.set_trace()
+            ex_scores = [str(score) for score in scores[idx]]
+            ctxs_num = len(passages[0])
             d["ctxs"] = [
                 {
                     "id": db_ids[idx][c],
                     "source": domain,
-                    "retrieval text": passages[idx][c]["text"],
-                    "retrieval score": scores[idx][c],
+                    "retrieval text": passages[idx][c],
+                    "retrieval score": ex_scores[c],
                 }
                 for c in range(ctxs_num)
             ]
@@ -283,6 +285,7 @@ def search_dense_topk(cfg):
                 
                 # todo: double check valid_query_idx
                 logging.info(f"Adding documents to eval data...")
+                import pdb; pdb.set_trace()
                 add_passages_to_eval_data(copied_data, all_passages, all_scores, db_ids, valid_query_idx, domain=ds_domain)
                 
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)

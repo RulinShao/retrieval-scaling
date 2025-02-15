@@ -54,7 +54,7 @@ datastore:
     index_shard_ids: [0]  # idx of passages included in each index; [0, 1, 2] means build a single index over psg-0&1&2
     save_or_load_index: True
     no_fp16: False
-    index_type: IVFFlat    # Flat, IVFFlat, IVFPQ (PQ degrades to flat when n_subquantizers is 0)
+    index_type: IVFPQ    # Flat, IVFFlat, IVFPQ (PQ degrades to flat when n_subquantizers is 0)
     sample_train_size: 100000
     indexing_batch_size: 1000000
     projection_size: 768
