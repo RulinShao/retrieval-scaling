@@ -175,13 +175,11 @@ class IVFPQIndexer(object):
         assert index.is_trained and index.ntotal == 0
         
         start_time = time.time()
-        # NOTE: the shard id is a relative id within the index's selected shards
-        for shard_id in range(len(self.embed_paths)):
-            if len(self.embed_paths) == 1: 
-                # hacky fix on single-shard indexing
-                filename = os.path.basename(self.embed_paths[0])
-                match = re.search(r"passages_(\d+)\.pkl", filename)
-                shard_id = int(match.group(1))
+        # NOTE: the shard id is a absolute id defined in the name
+        for embed_path in self.embed_paths:
+            filename = os.path.basename(embed_path)
+            match = re.search(r"passages_(\d+)\.pkl", filename)
+            shard_id = int(match.group(1))
                 
             to_add = self.get_embs(shard_id=shard_id).copy()
             index.add(to_add)

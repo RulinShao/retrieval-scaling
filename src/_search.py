@@ -120,8 +120,6 @@ def add_passages_to_eval_data(data, passages, scores, db_ids, valid_query_idx, d
     for i, d in enumerate(data):
         if i in valid_query_idx:
             ex_scores = scores[idx]
-            if isinstance(scores[idx], str):
-                import pdb; pdb.set_trace()
             ex_scores = [str(score) for score in scores[idx]]
             ctxs_num = len(passages[0])
             d["ctxs"] = [
@@ -285,7 +283,6 @@ def search_dense_topk(cfg):
                 
                 # todo: double check valid_query_idx
                 logging.info(f"Adding documents to eval data...")
-                import pdb; pdb.set_trace()
                 add_passages_to_eval_data(copied_data, all_passages, all_scores, db_ids, valid_query_idx, domain=ds_domain)
                 
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)

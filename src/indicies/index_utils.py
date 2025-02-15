@@ -13,6 +13,8 @@ def get_index_dir_and_embedding_paths(cfg, index_shard_ids=None):
 
     # index passages
     index_shard_ids = index_shard_ids if index_shard_ids is not None else index_args.get('index_shard_ids', None)
+    # sort to make it invariant to order
+    index_shard_ids = sorted(index_shard_ids)
     if index_shard_ids:
         index_shard_ids = [int(i) for i in index_shard_ids]
         embedding_paths = [os.path.join(embedding_args.embedding_dir, embedding_args.prefix + f"_{shard_id:02d}.pkl")
@@ -79,9 +81,11 @@ def get_passage_pos_ids(passage_dir, pos_map_save_path):
         
         pos_id_map = {}
         print(f"Generating id2pos for {passage_dir}")
-        for shard_id in tqdm(range(len(jsonl_files))):
-            filename = f"raw_passages-{shard_id}-of-{len(jsonl_files)}.jsonl"
+        for filename in tqdm(jsonl_files):
+            match = re.match(r"raw_passages-(\d+)-of-\d+\.jsonl", filename)
+            shard_id = int(match.group(1))
             file_path = os.path.join(passage_dir, filename)
+            
             file_pos_id_map = {}
             with open(file_path, 'r') as file:
                 position = file.tell()
@@ -95,6 +99,7 @@ def get_passage_pos_ids(passage_dir, pos_map_save_path):
             pos_id_map[shard_id] = file_pos_id_map
     
     elif os.path.isfile(passage_dir):
+        # NOTE: deprecated feature, will be removed in future release.
         assert '.pkl' in passage_dir and os.path.exists(passage_dir.replace('.pkl', '.jsonl'))
         match = re.search(r"-(\d+)-of-\d+\.pkl", passage_dir)
         assert match, f"Cannot extract shard_id from {passage_dir}"

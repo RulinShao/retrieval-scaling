@@ -62,7 +62,7 @@ datastore:
     keep_raw_metadata: ${datastore.keep_raw_metadata}
     use_passage_pos_id_map: ${datastore.use_passage_pos_id_map}
     passages_embeddings: ${datastore.embedding.embedding_dir}/*.pkl
-    num_subsampled_embedding_files: 1    # Number of subsampled embeddings, use all if pass -1, not supported yet, assume use all embeddings in the dir
+    num_subsampled_embedding_files: -1    # Number of subsampled embeddings, use all if pass -1, not supported yet, assume use all embeddings in the dir
     index_shard_ids: [0]  # idx of passages included in each index; [0, 1, 2] means build a single index over psg-0&1&2
     save_or_load_index: True
     no_fp16: False
@@ -106,7 +106,8 @@ evaluation:
   concate_k: 3    # Number of retrieved passages for concatenation, 0 means LM-only
   max_retrieval_len: 1024
   calibration_out_dir: null
-  eval_output_dir: scaling_out/retrieved_results/${model.datastore_encoder}/${datastore.domain}_datastore-${datastore.chunk_size}_chunk_size-1of${datastore.embedding.num_shards}_shards/top_${evaluation.search.n_docs}
+  index_postfix: ${datastore.index.index_type}_${datastore.index.sample_train_size}_${datastore.index.ncentroids}_${datastore.index.n_subquantizers}_${datastore.index.n_bits}
+  eval_output_dir: scaling_out/retrieved_results/${model.datastore_encoder}/${datastore.domain}_datastore-${datastore.chunk_size}_chunk_size-1of${datastore.embedding.num_shards}_shards-${evaluation.index_postfix}/top_${evaluation.search.n_docs}
   results_only_log_file: scaling_out/test_c4_ppl.log
   debug_mode: false
   decontamination: false

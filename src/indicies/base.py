@@ -31,10 +31,12 @@ class Indexer(object):
         
         if self.index_type == "Flat":
             self.datastore = FlatIndexer(
-                index_path=None,
-                meta_file=None,
-                passage_dir=None,
-                pos_map_save_path=None,
+                embed_paths=embedding_paths,
+                index_path=index_path,
+                meta_file=meta_file,
+                passage_dir=passage_dir,
+                pos_map_save_path=pos_map_save_path,
+                dimension=self.args.projection_size,
             )
         elif self.index_type == "IVFFlat":
             self.datastore = IVFFlatIndexer(
