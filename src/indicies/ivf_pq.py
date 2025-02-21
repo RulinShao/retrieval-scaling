@@ -32,7 +32,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 device = 'cuda' if torch.cuda.is_available()  else 'cpu'
 
 
-class IVFFlatIndexer(object):
+class IVFPQIndexer(object):
 
     def __init__(self, 
                 embed_paths,
@@ -49,6 +49,8 @@ class IVFFlatIndexer(object):
                 probe=2048,
                 num_keys_to_add_at_a_time=1000000,
                 DSTORE_SIZE_BATCH=51200000,
+                n_subquantizers=16,
+                code_size=8,
                 ):
     
         self.embed_paths = embed_paths  # list of paths where saved the embedding of all shards
@@ -65,13 +67,14 @@ class IVFFlatIndexer(object):
         self.ncentroids = ncentroids
         self.probe = probe
         self.num_keys_to_add_at_a_time = num_keys_to_add_at_a_time
+        self.n_subquantizers = n_subquantizers
+        self.code_size = code_size
 
         if os.path.exists(index_path) and os.path.exists(self.meta_file):
             print("Loading index...")
             self.index = faiss.read_index(index_path)
             self.index_id_to_db_id = self.load_index_id_to_db_id()
             self.index.nprobe = self.probe
-            # assert self.index.nprobe==self.index.nlist, f"nlist and nprobe are different {self.index.nprobe},{self.index.nlist}"
         else:
             self.index_id_to_db_id = []
             if not os.path.exists(self.trained_index_path):
@@ -141,10 +144,12 @@ class IVFFlatIndexer(object):
 
     def _train_index(self, sampled_embs, trained_index_path):
         quantizer = faiss.IndexFlatIP(self.dimension)
-        start_index = faiss.IndexIVFFlat(quantizer,
+        start_index = faiss.IndexIVFPQ(quantizer,
                                        self.dimension,
                                        self.ncentroids,
-                                       faiss.METRIC_INNER_PRODUCT,
+                                       self.n_subquantizers,
+                                       self.code_size,
+                                       faiss.METRIC_INNER_PRODUCT
                                        )
         start_index.nprobe = self.probe
         np.random.seed(1)
@@ -170,6 +175,7 @@ class IVFFlatIndexer(object):
         assert index.is_trained and index.ntotal == 0
         
         start_time = time.time()
+        # NOTE: the shard id is a absolute id defined in the name
         for embed_path in self.embed_paths:
             filename = os.path.basename(embed_path)
             match = re.search(r"passages_(\d+)\.pkl", filename)
@@ -228,20 +234,22 @@ class IVFFlatIndexer(object):
 
 
 def test_build_multi_shard_dpr_wiki():
-    embed_dir = '/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/dpr_wiki/8-shards'
+    embed_dir = '/fsx-comem/rulin/data/truth_teller/scaling_out/embeddings/facebook/contriever-msmarco/dpr_wiki/1-shards'
     embed_paths = [os.path.join(embed_dir, filename) for filename in os.listdir(embed_dir) if filename.endswith('.pkl')]
     sample_train_size = 6000000
     projection_size = 768
     ncentroids = 4096
-    formatted_index_name = f"index_ivf_flat_ip.{sample_train_size}.{projection_size}.{ncentroids}.faiss"
-    index_dir = '/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/contriever-msmarco/dpr_wiki/8-shards/index_ivf_flat/'
+    n_subquantizers = 16
+    code_size = 8
+    formatted_index_name = f"index_ivf_pq_ip.{sample_train_size}.{projection_size}.{ncentroids}.faiss"
+    index_dir = '/fsx-comem/rulin/data/truth_teller/scaling_out/embeddings/facebook/contriever-msmarco/dpr_wiki/1-shards/index_ivf_pq/'
     os.makedirs(index_dir, exist_ok=True)
     index_path = os.path.join(index_dir, formatted_index_name)
     meta_file = os.path.join(index_dir, formatted_index_name+'.meta')
     trained_index_path = os.path.join(index_dir, formatted_index_name+'.trained')
     pos_map_save_path = os.path.join(index_dir, 'passage_pos_id_map.pkl')
-    passage_dir = '/checkpoint/amaia/explore/comem/data/massive_ds_1.4t/scaling_out/passages/dpr_wiki/8-shards'
-    index = IVFFlatIndexer(
+    passage_dir = '/fsx-comem/rulin/data/truth_teller/scaling_out/passages/dpr_wiki/1-shards'
+    index = IVFPQIndexer(
         embed_paths,
         index_path,
         meta_file,
@@ -251,6 +259,8 @@ def test_build_multi_shard_dpr_wiki():
         sample_train_size=sample_train_size,
         dimension=projection_size,
         ncentroids=ncentroids,
+        n_subquantizers=n_subquantizers,
+        code_size=code_size,
         )
 
 
@@ -260,15 +270,17 @@ def test_build_single_shard_dpr_wiki():
     sample_train_size = 6000000
     projection_size = 768
     ncentroids = 4096
-    formatted_index_name = f"index_ivf_flat_ip.{sample_train_size}.{projection_size}.{ncentroids}.faiss"
-    index_dir = '/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/dragon-plus-context-encoder/dpr_wiki/8-shards/index_ivf_flat/'
+    n_subquantizers = 16
+    code_size = 8
+    formatted_index_name = f"index_ivf_pq_ip.{sample_train_size}.{projection_size}.{ncentroids}.faiss"
+    index_dir = '/checkpoint/amaia/explore/comem/data/scaling_out/embeddings/facebook/dragon-plus-context-encoder/dpr_wiki/8-shards/index_ivf_pq/'
     os.makedirs(index_dir, exist_ok=True)
     index_path = os.path.join(index_dir, formatted_index_name)
     meta_file = os.path.join(index_dir, formatted_index_name+'.meta')
     trained_index_path = os.path.join(index_dir, formatted_index_name+'.trained')
     pos_map_save_path = os.path.join(index_dir, 'passage_pos_id_map.pkl')
-    passage_dir = '/checkpoint/amaia/explore/comem/data/massive_ds_1.4t/scaling_out/passages/dpr_wiki/8-shards'
-    index = IVFFlatIndexer(
+    passage_dir = '/fsx-comem/rulin/data/truth_teller/scaling_out/passages/dpr_wiki/8-shards'
+    index = IVFPQIndexer(
         embed_paths,
         index_path,
         meta_file,
@@ -278,6 +290,8 @@ def test_build_single_shard_dpr_wiki():
         sample_train_size=sample_train_size,
         dimension=projection_size,
         ncentroids=ncentroids,
+        n_subquantizers=n_subquantizers,
+        code_size=code_size,
         )
 
 if __name__ == '__main__':
