@@ -1,4 +1,4 @@
-EVAL_DOMAIN=all_cot_query
+EVAL_DOMAIN=mmlu_pro:mc::none+gpqa::llama3+agi_eval_english::olmes
 
 N_DOCS=1000
 
@@ -32,10 +32,10 @@ for TASK_ID in $(seq 0 14); do
     datastore.embedding.shard_ids=[] \
     datastore.index.index_shard_ids=$index_list \
     evaluation.domain=$EVAL_DOMAIN \
-    evaluation.data.eval_data=/mnt/md-256k/cot_out/all_cot_query.jsonl \
+    evaluation.data.eval_data=/mnt/md-256k/workspace/micheal_queries/mmlu_pro\:mc\:\:none+gpqa\:\:llama3+agi_eval_english\:\:olmes.jsonl \
     evaluation.search.n_docs=$N_DOCS \
     evaluation.search.cache_query_embedding=true \
-    evaluation.search.query_embedding_save_path=/mnt/md-256k/cot_out/all_cot_query.pkl
+    evaluation.search.query_embedding_save_path=/mnt/md-256k/workspace/micheal_queries/query_embeddings.pkl
 
 done
 end_time=$(date +%s)

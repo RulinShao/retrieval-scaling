@@ -1,5 +1,5 @@
-EVAL_DOMAIN=all_queries_250
-N_DOCS=2000
+EVAL_DOMAIN=mmlu_pro:mc::none+gpqa::llama3+agi_eval_english::olmes
+N_DOCS=1000
 
 
 python /mnt/md-256k/retrieval-scaling/scripts/write_retrieval_paths_to_txt.py \
