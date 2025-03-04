@@ -58,7 +58,7 @@ class IVFFlatIndexer(object):
         self.trained_index_path = trained_index_path  # path to save the trained index
         self.passage_dir = passage_dir
         self.pos_map_save_path = pos_map_save_path
-        self.cuda = False
+        self.cuda = torch.cuda.is_available()
 
         self.sample_size = sample_train_size
         self.dimension = dimension
@@ -134,10 +134,10 @@ class IVFFlatIndexer(object):
             all_sampled_embs.extend(sampled_embs)
         all_sampled_embs = np.stack(all_sampled_embs).astype(np.float32)
         
-        print ("Training index...")
+        logging.info("Training index...")
         start_time = time.time()
         self._train_index(all_sampled_embs, self.trained_index_path)
-        print ("Finish training (%ds)" % (time.time()-start_time))
+        logging.info("Finish training (%ds)" % (time.time()-start_time))
 
     def _train_index(self, sampled_embs, trained_index_path):
         quantizer = faiss.IndexFlatIP(self.dimension)
@@ -150,6 +150,7 @@ class IVFFlatIndexer(object):
         np.random.seed(1)
 
         if self.cuda:
+            logging.info("Detected GPUs, training with CUDA...")
             # Convert to GPU index
             res = faiss.StandardGpuResources()
             co = faiss.GpuClonerOptions()
@@ -179,12 +180,12 @@ class IVFFlatIndexer(object):
             index.add(to_add)
             ids_toadd = [[shard_id, chunk_id] for chunk_id in range(len(to_add))]  #TODO: check len(to_add) is correct usage
             self.index_id_to_db_id.extend(ids_toadd)
-            print ('Added %d / %d shards, (%d min)' % (shard_id+1, len(self.embed_paths), (time.time()-start_time)/60))
+            logging.info('Added %d / %d shards, (%d min)' % (shard_id+1, len(self.embed_paths), (time.time()-start_time)/60))
         
         faiss.write_index(index, index_path)
         with open(self.meta_file, 'wb') as fout:
             pickle.dump(self.index_id_to_db_id, fout)
-        print ('Adding took {} s'.format(time.time() - start_time))
+        logging.info('Adding took {} s'.format(time.time() - start_time))
         return index
     
     def build_passage_pos_id_map(self, ):

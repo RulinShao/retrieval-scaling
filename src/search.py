@@ -32,7 +32,7 @@ from contriever.src.evaluation import calculate_matches
 import contriever.src.normalize_text
 
 from src.data import load_eval_data
-from index import Indexer, get_bm25_index_dir
+from src.index import Indexer, get_bm25_index_dir
 from src.decontamination import check_below_lexical_overlap_threshold
 try:
     from utils.deduplication import remove_duplicates_with_minhash, multiprocess_deduplication
@@ -70,19 +70,24 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
                 batch_question.append(q)
 
                 if len(batch_question) == args.per_gpu_batch_size or k == len(queries) - 1:
+                    
+                    if "drama" in args.model_name_or_path:
+                        output = model.encode_queries(batch_question, batch_text)
+                    
+                    else:
+                        encoded_batch = tokenizer.batch_encode_plus(
+                            batch_question,
+                            return_tensors="pt",
+                            max_length=args.question_maxlength,
+                            padding=True,
+                            truncation=True,
+                        )
 
-                    encoded_batch = tokenizer.batch_encode_plus(
-                        batch_question,
-                        return_tensors="pt",
-                        max_length=args.question_maxlength,
-                        padding=True,
-                        truncation=True,
-                    )
-
-                    encoded_batch = {k: v.to(device) for k, v in encoded_batch.items()}
-                    output = model(**encoded_batch)
-                    if "contriever" not in model_name_or_path:
-                        output = output.last_hidden_state[:, 0, :]
+                        encoded_batch = {k: v.to(device) for k, v in encoded_batch.items()}
+                        output = model(**encoded_batch)
+                        if "contriever" not in model_name_or_path:
+                            output = output.last_hidden_state[:, 0, :]
+                    
                     embeddings.append(output.cpu())
 
                     batch_question = []
@@ -228,9 +233,9 @@ def search_dense_topk(cfg):
         tokenizer_name_or_path = cfg.model.query_tokenizer
         if "contriever" in model_name_or_path:
             query_encoder, query_tokenizer, _ = contriever.src.contriever.load_retriever(model_name_or_path)
-        elif "dragon" in model_name_or_path:
+        elif "dragon" in model_name_or_path or "drama" in model_name_or_path:
             query_tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
-            query_encoder = AutoModel.from_pretrained(model_name_or_path)
+            query_encoder = AutoModel.from_pretrained(model_name_or_path, trust_remote_code=True)
         elif "sentence-transformers" in model_name_or_path:
             query_tokenizer = None
             query_encoder = SentenceTransformer(model_name_or_path)

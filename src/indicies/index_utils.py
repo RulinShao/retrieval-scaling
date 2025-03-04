@@ -38,7 +38,7 @@ def get_index_dir_and_embedding_paths(cfg, index_shard_ids=None):
 def convert_pkl_to_jsonl(passage_dir):
     if os.path.isdir(passage_dir):
         filenames = os.listdir(passage_dir)
-        pkl_files = [filename for filename in filenames if '.pkl' in filename]
+        pkl_files = [filename for filename in filenames if '.pkl' in filename and 'pos_id_map' not in filename]
         print(f"Converting passages to JSONL data format: {passage_dir}")
     elif os.path.isfile(passage_dir):
         assert '.pkl' in passage_dir
@@ -76,7 +76,7 @@ def get_passage_pos_ids(passage_dir, pos_map_save_path):
 
     if os.path.isdir(passage_dir):
         filenames = os.listdir(passage_dir)
-        jsonl_files = [filename for filename in filenames if '.jsonl' in filename]
+        jsonl_files = [filename for filename in filenames if '.jsonl' in filename and 'pos_id_map' not in filename]
         print(f"Converting passages to JSONL data format: {passage_dir}")
         
         pos_id_map = {}
