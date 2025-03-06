@@ -161,7 +161,7 @@ def find_free_port():
 def main():
     port = find_free_port()
     server_id = socket.gethostname()
-    chunk_id = '-'.join(shard_ids)
+    chunk_id = '-'.join([str(id) for id in shard_ids])
     domain_name = DS_DOMAIN
     serve_info = {'server_id': server_id, 'port': port, 'chunk_id': chunk_id}
     endpoint = f'rulin@{server_id}:{port}/search'  # replace with your endpoint
@@ -176,4 +176,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main()   
+    
+    """
+    ##### Test #####
+    curl -X POST rulin@cr1-h200-p5en48xlarge-14:57529/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
+    """

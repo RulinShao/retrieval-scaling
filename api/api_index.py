@@ -13,7 +13,6 @@ from src.hydra_runner import hydra_runner
 from src.indicies.ivf_flat import IVFFlatIndexer
 from src.search import embed_queries
 from src.indicies.base import Indexer
-import pdb
 
 
 device = 'cuda' if torch.cuda.is_available()  else 'cpu'
@@ -63,16 +62,18 @@ def get_datastore(cfg, shard_id=None):
     test_search(ds)
     return ds
 
+
 @hydra.main(config_path="conf", config_name="aws_h200")
 def main(cfg):
     get_datastore(cfg, 0)
+
 
 def test_search(ds):
     query = 'when was the last time anyone was on the moon?'  # 'scores': array([[44.3889  , 44.770973, 45.956238]], dtype=float32), 'IDs': [[[5, 45516], [6, 2218998], [5, 897337]]
     query2 = "who wrote he ain't heavy he's my brother lyrics?"  # 'scores': array([[33.60194 , 41.798004, 43.465225]], dtype=float32) 'IDs': [[[2, 361677], [5, 1717105], [2, 361675]]]
     search_results = ds.search(query, 1)
     print(search_results)
-    pdb.set_trace()
+
 
 def profile_time(ds):
     for i in range(30):
