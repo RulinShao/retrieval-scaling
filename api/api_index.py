@@ -10,21 +10,42 @@ import json
 import torch
 
 from src.hydra_runner import hydra_runner
-from src.indicies.flat import FlatIndexer
+from src.indicies.ivf_flat import IVFFlatIndexer
 from src.search import embed_queries
+from src.indicies.base import Indexer
 import pdb
 
 
 device = 'cuda' if torch.cuda.is_available()  else 'cpu'
 
-class FlatDatastoreAPI():
-    def __init__(self, shard_id, cfg) -> None:
-        self.cfg = cfg
-        self.index = self.load_flat_index(shard_id=shard_id)
-        # TODO support other query encoders
-        self.query_encoder, self.query_tokenizer, _ = contriever.src.contriever.load_retriever('facebook/contriever-msmarco')
+class DatastoreAPI():
+    def __init__(self, cfg, shard_id=None) -> None:
+        if shard_id is not None:
+            if isinstance(shard_id, list):
+                cfg.datastore.index.index_shard_ids = shard_id
+            else:
+                cfg.datastore.index.index_shard_ids = [shard_id]
+        self._index = Indexer(cfg)
+        self.index = self._index.datastore
+        
+        model_name_or_path = cfg.model.query_encoder
+        tokenizer_name_or_path = cfg.model.query_tokenizer
+        if "contriever" in model_name_or_path:
+            query_encoder, query_tokenizer, _ = contriever.src.contriever.load_retriever(model_name_or_path)
+        elif "dragon" in model_name_or_path or "drama" in model_name_or_path:
+            query_tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
+            query_encoder = AutoModel.from_pretrained(model_name_or_path, trust_remote_code=True)
+        elif "sentence-transformers" in model_name_or_path:
+            query_tokenizer = None
+            query_encoder = SentenceTransformer(model_name_or_path)
+        else:
+            print(f"{model_name_or_path} is not supported!")
+            raise AttributeError
+        self.query_encoder = query_encoder
+        self.query_tokenizer = query_tokenizer
         self.query_encoder = self.query_encoder.to(device)
         
+        self.cfg = cfg
     
     def search(self, query, n_docs=3):
         query_embedding = self.embed_query(query)
@@ -32,39 +53,23 @@ class FlatDatastoreAPI():
         results = {'scores': searched_scores, 'passages': searched_passages, 'IDs': db_ids}
         return results
     
-    def load_flat_index(self, shard_id=0):
-        embed_dir = self.cfg.datastore.embedding.embedding_dir
-        passage_dir = self.cfg.datastore.embedding.passages_dir
-        index_path = os.path.join(embed_dir, 'index', str(shard_id), 'index.faiss')
-        meta_file = os.path.join(embed_dir, 'index', str(shard_id), 'index_meta.faiss')
-        pos_map_save_path = os.path.join(passage_dir, 'passage_pos_id_map.pkl')
-        index = FlatIndexer(
-            index_path,
-            meta_file,
-            passage_dir=passage_dir,
-            pos_map_save_path=pos_map_save_path,
-        )
-        return index
-    
     def embed_query(self, query):
         query_embbeding = embed_queries(self.cfg.evaluation.search, [query], self.query_encoder, self.query_tokenizer, self.cfg.model.query_encoder)
         return query_embbeding
     
 
-def get_datastore(cfg, shard_id):
-    ds = FlatDatastoreAPI(shard_id=shard_id, cfg=cfg)
-    # test_search(ds)
+def get_datastore(cfg, shard_id=None):
+    ds = DatastoreAPI(cfg=cfg, shard_id=shard_id)
+    test_search(ds)
     return ds
 
-@hydra.main(config_path="/home/rulin/retrieval-scaling/ric/conf/", config_name="pes2o")
+@hydra.main(config_path="conf", config_name="aws_h200")
 def main(cfg):
     get_datastore(cfg, 0)
 
 def test_search(ds):
     query = 'when was the last time anyone was on the moon?'  # 'scores': array([[44.3889  , 44.770973, 45.956238]], dtype=float32), 'IDs': [[[5, 45516], [6, 2218998], [5, 897337]]
     query2 = "who wrote he ain't heavy he's my brother lyrics?"  # 'scores': array([[33.60194 , 41.798004, 43.465225]], dtype=float32) 'IDs': [[[2, 361677], [5, 1717105], [2, 361675]]]
-    # query: 'scores': array([[3540.2017, 3541.064 , 3541.2776]] 'IDs': [[[4, 270110], [6, 1770473], [4, 270109]]]
-    # query2: 'scores': array([[3537.0122, 3543.1533, 3544.3677]] 'IDs': [[[4, 270110], [6, 1770473], [3, 1408820]]]
     search_results = ds.search(query, 1)
     print(search_results)
     pdb.set_trace()

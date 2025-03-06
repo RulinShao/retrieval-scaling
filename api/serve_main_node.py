@@ -18,7 +18,7 @@ from omegaconf import OmegaConf
 from hydra.core.global_hydra import GlobalHydra
 
 
-def extract_running_endpoints(file_path='/checkpoint/amaia/explore/rulin/retrieval-scaling/running_ports.txt'):
+def extract_running_endpoints(file_path='running_ports_massiveds.txt'):
     """
     Extracts information from a text file and returns it as a list.
     Args:

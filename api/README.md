@@ -1,4 +1,4 @@
-# Serving a public API on Hyak
+# Example: serving a public API on Hyak
 
 #### Step 1. Run the serve script
 ```bash

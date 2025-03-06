@@ -9,4 +9,4 @@ lm_eval.egg-info/
 *.jsonl
 *.sh
 *.txt
-ric/conf/
+conf/

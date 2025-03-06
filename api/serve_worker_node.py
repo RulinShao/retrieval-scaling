@@ -1,5 +1,6 @@
 import os
 import json
+import traceback
 import datetime
 import hydra
 import socket
@@ -11,7 +12,15 @@ import hydra
 from omegaconf import OmegaConf
 from hydra.core.global_hydra import GlobalHydra
 
-from flat_index import get_datastore
+from api.api_index import get_datastore
+
+
+DS_DOMAIN = os.getenv('DS_DOMAIN')
+NUM_SHARDS = int(os.getenv('NUM_SHARDS'))
+NUM_SHARDS_PER_WORKER = int(os.getenv('NUM_SHARDS_PER_WORKER'))
+WORKER_ID = int(os.getenv('WORKER_ID'))
+
+shard_ids = [i for i in range(WORKER_ID*NUM_SHARDS_PER_WORKER, (WORKER_ID+1)*NUM_SHARDS_PER_WORKER)]
 
 
 def load_config():
@@ -20,10 +29,10 @@ def load_config():
         GlobalHydra.instance().clear()
 
     # Initialize Hydra and set the path to the config directory
-    hydra.initialize(config_path="conf/")
+    hydra.initialize(config_path="conf")
 
     # Compose the configuration (this loads the configuration files and merges them)
-    cfg = hydra.compose(config_name="pes2o")
+    cfg = hydra.compose(config_name="aws_h200")
 
     # Print or use the configuration as needed
     print(OmegaConf.to_yaml(cfg))
@@ -54,15 +63,18 @@ class Item:
 
 
 class SearchQueue:
-    def __init__(self, log_queries=True):
+    def __init__(self, log_queries=False):
         self.queue = queue.Queue()
         self.lock = threading.Lock()
         self.current_search = None
         self.cfg = load_config()
-        self.datastore = get_datastore(self.cfg, int(os.getenv('CHUNK_ID', 0)))
+        self.cfg.datastore.domain = DS_DOMAIN
+        self.cfg.datastore.embedding.num_shards = NUM_SHARDS
+        self.datastore = get_datastore(self.cfg, shard_ids)
 
-        self.log_queries = False
-
+        self.log_queries = log_queries
+        self.query_log = 'cached_queries.jsonl'
+    
     def search(self, item):
         with self.lock:
             if self.current_search is None:
@@ -96,20 +108,25 @@ threading.Thread(target=search_queue.process_queue, daemon=True).start()
 
 @app.route('/search', methods=['POST'])
 def search():
-    item = Item(
-        query=request.json['query'],
-        domains=request.json['domains'],
-        n_docs=request.json['n_docs'],
-    )
-    # Perform the search synchronously, but queue if another search is in progress
-    results = search_queue.search(item)
-    print(results)
-    return jsonify({
-        "message": f"Search completed for '{item.query}' from {item.domains}",
-        "query": item.query,
-        "n_docs": item.n_docs,
-        "results": results,
-    }), 200
+    try:
+        item = Item(
+            query=request.json['query'],
+            domains=request.json['domains'],
+            n_docs=request.json['n_docs'],
+        )
+        # Perform the search synchronously, but queue if another search is in progress
+        results = search_queue.search(item)
+        print(results)
+        return jsonify({
+            "message": f"Search completed for '{item.query}' from {item.domains}",
+            "query": item.query,
+            "n_docs": item.n_docs,
+            "results": results,
+        }), 200
+    except Exception as e:
+        tb_lines = traceback.format_exception(e.__class__, e, e.__traceback__)
+        error_message = f"An error occurred: {str(e)}\n{''.join(tb_lines)}"
+        return jsonify({"message": error_message}), 500
 
 @app.route('/current_search')
 def current_search():
@@ -144,12 +161,13 @@ def find_free_port():
 def main():
     port = find_free_port()
     server_id = socket.gethostname()
-    chunk_id = os.getenv('CHUNK_ID', 0)
-    serve_info = {'server_id': server_id, 'port': port, 'chunk_id': int(os.getenv('CHUNK_ID', 0))}
-    endpoint = f'rulin@{server_id}:{port}/search'
+    chunk_id = '-'.join(shard_ids)
+    domain_name = DS_DOMAIN
+    serve_info = {'server_id': server_id, 'port': port, 'chunk_id': chunk_id}
+    endpoint = f'rulin@{server_id}:{port}/search'  # replace with your endpoint
     print(f'Running at {endpoint}')
-    with open('running_ports.txt', 'a+') as fout:
-        fout.write(f'Chunk: {chunk_id}\n')
+    with open('running_ports_massiveds.txt', 'a+') as fout:
+        fout.write(f'{domain_name} Chunk: {chunk_id}\n')
         fout.write(endpoint)
         fout.write('\n')
         
@@ -159,6 +177,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
-    
-    
