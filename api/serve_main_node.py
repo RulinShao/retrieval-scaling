@@ -212,24 +212,16 @@ def main_node_multithread_search(query, n_docs):
 
 
 class SearchQueue:
-    def __init__(self, log_queries=True):
+    def __init__(self,):
         self.queue = queue.Queue()
         self.lock = threading.Lock()
         self.current_search = None
         self.cfg = load_config()
-
-        self.log_queries = log_queries
-        self.query_log = '/checkpoint/amaia/explore/rulin/api_query_cache/2024_11_14_queries.jsonl'
     
     def search(self, item):
         with self.lock:
             if self.current_search is None:
                 self.current_search = item
-                if self.log_queries:
-                    now = datetime.datetime.now()
-                    formatted_time = now.strftime('%Y-%m-%d %H:%M:%S')
-                    with open(self.query_log, 'a+') as fin:
-                        fin.write(json.dumps({'time': formatted_time, 'query': item.query})+'\n')
                 results = main_node_multithread_search(item.query, item.n_docs)
                 self.current_search = None
                 return results
@@ -304,6 +296,10 @@ if __name__ == '__main__':
     server_id = socket.gethostname()
     endpoint = f'rulin@{server_id}:{port}/search'
     print(endpoint)
+    with open('running_ports_main_node.txt', 'a+') as fout:
+        fout.write(f'Endpoints: \n')
+        fout.write(endpoint)
+        fout.write('\n')
     app.run(host='0.0.0.0', port=port)
     
     
