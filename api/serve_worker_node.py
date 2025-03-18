@@ -180,5 +180,5 @@ if __name__ == '__main__':
     
     """
     ##### Test #####
-    curl -X POST rulin@cr1-h200-p5en48xlarge-0:50203/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
+    curl -X POST rulin@cr1-h200-p5en48xlarge-712:33959/search -H "Content-Type: application/json" -d '{"query": "Where was Marie Curie born?", "n_docs": 1, "domains": "rpj_c4"}'
     """

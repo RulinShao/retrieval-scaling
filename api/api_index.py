@@ -53,8 +53,13 @@ class DatastoreAPI():
         return results
     
     def embed_query(self, query):
-        query_embbeding = embed_queries(self.cfg.evaluation.search, [query], self.query_encoder, self.query_tokenizer, self.cfg.model.query_encoder)
-        return query_embbeding
+        if isinstance(query, str):
+            query_embedding = embed_queries(self.cfg.evaluation.search, [query], self.query_encoder, self.query_tokenizer, self.cfg.model.query_encoder)
+        elif isinstance(query, list):
+            query_embedding = embed_queries(self.cfg.evaluation.search, query, self.query_encoder, self.query_tokenizer, self.cfg.model.query_encoder)
+        else:
+            raise AttributeError(f"Query is not a string nor list!")
+        return query_embedding
     
 
 def get_datastore(cfg, shard_id=None):

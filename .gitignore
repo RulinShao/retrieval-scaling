@@ -10,3 +10,4 @@ lm_eval.egg-info/
 *.sh
 *.txt
 conf/
+experiments/
