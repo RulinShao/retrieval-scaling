@@ -39,29 +39,59 @@ def extract_running_endpoints(file_path='running_ports_massiveds.txt'):
 def rerank_elements(element_list, k=-1):
     """
     Reranks a list of elements based on their scores in descending order.
+    Handles multiple batch sizes (bs>1).
+    
     Args:
         element_list (list): A list of elements, where each element contains 'IDs', 'passages', and 'scores'.
+        k (int): Maximum number of results to return per batch. If -1, return all.
+        
     Returns:
-        dict: The reranked element.
+        dict: The reranked elements, with each batch maintained separately.
     """
-    # Concatenate the results according to the keys
-    concatenated_element = {
-        'ID': [],
-        'passage': [],
-        'score': []
-    }
-    for element in element_list:
-        for i in range(len(element['IDs'][0])):
-            concatenated_element['ID'].append(element['IDs'][0][i])
-            concatenated_element['passage'].append(element['passages'][0][i])
-            concatenated_element['score'].append(element['scores'][0][i])
-    # Rerank the values based on the scores in descending order
-    sorted_indices = sorted(range(len(concatenated_element['score'])), key=lambda k: concatenated_element['score'][k], reverse=True)
+    # Create a new structure that preserves the batch dimension
+    batch_size = max(len(element['scores']) for element in element_list)
     reranked_element = {
-        'IDs': [[concatenated_element['ID'][i] for i in sorted_indices][:k]],
-        'passages': [[concatenated_element['passage'][i] for i in sorted_indices][:k]],
-        'scores': [[concatenated_element['score'][i] for i in sorted_indices][:k]]
+        'IDs': [[] for _ in range(batch_size)],
+        'passages': [[] for _ in range(batch_size)],
+        'scores': [[] for _ in range(batch_size)]
     }
+    
+    # Process each batch separately
+    for batch_idx in range(batch_size):
+        # Concatenate the results for this batch
+        concatenated_batch = {
+            'ID': [],
+            'passage': [],
+            'score': []
+        }
+        
+        # Collect items from all elements for this batch index
+        for element in element_list:
+            # Skip if this element doesn't have data for this batch index
+            if batch_idx >= len(element['scores']):
+                continue
+                
+            for i in range(len(element['IDs'][batch_idx])):
+                concatenated_batch['ID'].append(element['IDs'][batch_idx][i])
+                concatenated_batch['passage'].append(element['passages'][batch_idx][i])
+                concatenated_batch['score'].append(element['scores'][batch_idx][i])
+        
+        # Rerank based on scores in descending order for this batch
+        sorted_indices = sorted(
+            range(len(concatenated_batch['score'])), 
+            key=lambda i: concatenated_batch['score'][i], 
+            reverse=True
+        )
+        
+        # Apply k limit if specified
+        if k > 0:
+            sorted_indices = sorted_indices[:k]
+            
+        # Add the sorted items for this batch
+        reranked_element['IDs'][batch_idx] = [concatenated_batch['ID'][i] for i in sorted_indices]
+        reranked_element['passages'][batch_idx] = [concatenated_batch['passage'][i] for i in sorted_indices]
+        reranked_element['scores'][batch_idx] = [concatenated_batch['score'][i] for i in sorted_indices]
+    
     return reranked_element
 
 
