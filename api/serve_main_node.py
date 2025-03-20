@@ -52,6 +52,31 @@ def extract_running_endpoints(
             info = json.loads(line)
             endpoints.append(info['endpoint'])
     
+    # Create a dictionary to track unique domain_name + chunk_id combinations
+    unique_endpoints = {}
+    with open(file_path, 'r') as file:
+        for line in file:
+            info = json.loads(line)
+            key = (info['domain_name'], info['chunk_id'])
+            
+            # If we haven't seen this combination before, add it
+            if key not in unique_endpoints:
+                unique_endpoints[key] = info['endpoint']
+            # If we have seen it, keep the valid endpoint
+            else:
+                # Check both endpoints and keep the valid one
+                old_endpoint = unique_endpoints[key]
+                new_endpoint = info['endpoint']
+                
+                old_valid = check_endpoint(old_endpoint)
+                new_valid = check_endpoint(new_endpoint)
+                
+                if new_valid and not old_valid:
+                    unique_endpoints[key] = new_endpoint
+
+    # Update endpoints list with deduplicated values
+    endpoints = list(unique_endpoints.values())
+
     num_endpoints_before_check = len(endpoints)
     print(f"Number of endpoints before check: {num_endpoints_before_check}")
     if check_endpoint_before_return:
@@ -377,14 +402,14 @@ def find_free_port():
 
 
 if __name__ == '__main__':
-    port = find_free_port()
-    server_id = socket.gethostname()
-    endpoint = f'rulin@{server_id}:{port}/search'
-    print(endpoint)
-    with open('running_ports_main_node.txt', 'a+') as fout:
-        fout.write(f'Endpoints: \n')
-        fout.write(endpoint)
-        fout.write('\n')
-    app.run(host='0.0.0.0', port=port)
+    # port = find_free_port()
+    # server_id = socket.gethostname()
+    # endpoint = f'rulin@{server_id}:{port}/search'
+    # print(endpoint)
+    # with open('running_ports_main_node.txt', 'a+') as fout:
+    #     fout.write(f'Endpoints: \n')
+    #     fout.write(endpoint)
+    #     fout.write('\n')
+    # app.run(host='0.0.0.0', port=port)
     
-    # test_extract_running_endpoints()
+    test_extract_running_endpoints()
