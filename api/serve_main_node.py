@@ -402,14 +402,14 @@ def find_free_port():
 
 
 if __name__ == '__main__':
-    # port = find_free_port()
-    # server_id = socket.gethostname()
-    # endpoint = f'rulin@{server_id}:{port}/search'
-    # print(endpoint)
-    # with open('running_ports_main_node.txt', 'a+') as fout:
-    #     fout.write(f'Endpoints: \n')
-    #     fout.write(endpoint)
-    #     fout.write('\n')
-    # app.run(host='0.0.0.0', port=port)
+    port = find_free_port()
+    server_id = socket.gethostname()
+    endpoint = f'{os.getlogin()}@{server_id}:{port}/search'
+    print(endpoint)
+    with open('running_ports_main_node.txt', 'a+') as fout:
+        fout.write(f'Endpoints: \n')
+        fout.write(endpoint)
+        fout.write('\n')
+    app.run(host='0.0.0.0', port=port)
     
-    test_extract_running_endpoints()
+    # test_extract_running_endpoints()

@@ -164,7 +164,7 @@ def main():
     chunk_id = '-'.join([str(id) for id in shard_ids])
     domain_name = DS_DOMAIN
     serve_info = {'server_id': server_id, 'port': port, 'chunk_id': chunk_id}
-    endpoint = f'rulin@{server_id}:{port}/search'  # replace with your endpoint
+    endpoint = f'{os.getlogin()}@{server_id}:{port}/search'  # replace with your endpoint
     print(f'Running at {endpoint}')
     with open('running_ports_massiveds.jsonl', 'a+') as fout:
         info = {
