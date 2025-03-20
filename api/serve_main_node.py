@@ -18,7 +18,27 @@ from omegaconf import OmegaConf
 from hydra.core.global_hydra import GlobalHydra
 
 
-def extract_running_endpoints(file_path='running_ports_massiveds.txt'):
+def check_endpoint(endpoint):
+    url = f"http://{endpoint}"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "query": "Where was Marie Curie born?",
+        "n_docs": 1,
+        "domains": "MassiveDS"
+    }
+    try:
+        # Set a short timeout to avoid hanging
+        response = requests.post(url, json=data, headers=headers, timeout=5)
+        return response.status_code == 200
+    except (requests.exceptions.RequestException, requests.exceptions.Timeout):
+        return False
+
+
+def extract_running_endpoints(
+    file_path='running_ports_massiveds.jsonl',
+    check_endpoint_before_return=False,
+    remove_invalid_endpoints_after_check=False,
+):
     """
     Extracts information from a text file and returns it as a list.
     Args:
@@ -26,14 +46,39 @@ def extract_running_endpoints(file_path='running_ports_massiveds.txt'):
     Returns:
         list: A list of extracted information.
     """
-    with open(file_path, 'r') as file:
-        lines = file.readlines()
     endpoints = []
-    for line in lines:
-        if '@' in line:
-            endpoints.append(line.strip())
+    with open(file_path, 'r') as file:
+        for line in file:
+            info = json.loads(line)
+            endpoints.append(info['endpoint'])
+    
+    num_endpoints_before_check = len(endpoints)
+    print(f"Number of endpoints before check: {num_endpoints_before_check}")
+    if check_endpoint_before_return:
+        new_endpoints = []
+        for endpoint in endpoints:
+            if check_endpoint(endpoint):
+                new_endpoints.append(endpoint)
+        endpoints = new_endpoints
+        
+        num_endpoints_after_check = len(endpoints)
+        print(f"Number of endpoints after check: {num_endpoints_after_check}")
+        
+        if num_endpoints_after_check != num_endpoints_before_check and remove_invalid_endpoints_after_check:
+            with open('running_ports_massiveds_after_check.jsonl', 'w') as fout:
+                for endpoint in endpoints:
+                    fout.write(json.dumps(endpoint)+'\n')
+    
+    assert len(endpoints) == 13, f"Missing endpoints. Current alive endpoints: {len(endpoints)}"
+        
     return endpoints
 
+
+def test_extract_running_endpoints():
+    endpoints = extract_running_endpoints(check_endpoint_before_return=True)
+    print(endpoints)
+    for i, endpoint in enumerate(endpoints):
+        print(f"{i}: {endpoint}")
 
 
 def rerank_elements(element_list, k=-1):
@@ -225,11 +270,21 @@ def main_node_multithread_search(query, n_docs):
         "domains": "rpj_c4 (nprobes=128)"
     }
     headers = {"Content-Type": "application/json"}
-    endpoints = extract_running_endpoints()
-    print(endpoints)
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(fetch_endpoint, endpoint, json_data, headers) for endpoint in endpoints]
-        all_responses = [future.result() for future in futures]
+    
+    try:
+        endpoints = extract_running_endpoints()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(fetch_endpoint, endpoint, json_data, headers) for endpoint in endpoints]
+            all_responses = [future.result() for future in futures]
+    except:
+        try:
+            endpoints = extract_running_endpoints(check_endpoint_before_return=True, remove_invalid_endpoints_after_check=True)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(fetch_endpoint, endpoint, json_data, headers) for endpoint in endpoints]
+                all_responses = [future.result() for future in futures]
+        except Exception as e:
+            print(f"Error: {e}")
+            return {'Error': e}
     
     print(f"Searched from {len(all_responses)} shards.")
     sorted_elements = rerank_elements(all_responses, k=n_docs)
@@ -332,4 +387,4 @@ if __name__ == '__main__':
         fout.write('\n')
     app.run(host='0.0.0.0', port=port)
     
-    
+    # test_extract_running_endpoints()

@@ -1,10 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=main-api
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1         
-#SBATCH --hint=nomultithread   
+#SBATCH --ntasks-per-node=32         
+#SBATCH --hint=multithread   
 #SBATCH --account comem
-#SBATCH --mem 100G         
+#SBATCH --qos comem_high
+#SBATCH --mem 400G         
 #SBATCH --time 120:00:00      
 #SBATCH --requeue
 #SBATCH --chdir=/checkpoint/comem/rulin/retrieval-scaling
@@ -12,7 +13,7 @@
 #SBATCH --array=0
 
 
-cd /checkpoint/comem/rulin/retrieval-scaling
+cd /checkpoint/comem/rulin/workspace/retrieval-scaling
 source /home/rulin/miniconda3/bin/activate
 conda activate scaling
 

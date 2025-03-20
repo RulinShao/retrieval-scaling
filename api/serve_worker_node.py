@@ -166,11 +166,13 @@ def main():
     serve_info = {'server_id': server_id, 'port': port, 'chunk_id': chunk_id}
     endpoint = f'rulin@{server_id}:{port}/search'  # replace with your endpoint
     print(f'Running at {endpoint}')
-    with open('running_ports_massiveds.txt', 'a+') as fout:
-        fout.write(f'{domain_name} Chunk: {chunk_id}\n')
-        fout.write(endpoint)
-        fout.write('\n')
-        
+    with open('running_ports_massiveds.jsonl', 'a+') as fout:
+        info = {
+            'domain_name': f'{domain_name}',
+            'chunk_id': f'{chunk_id}',
+            'endpoint': f'{endpoint}',
+        }
+        fout.write(json.dumps(info)+'\n')
     
     app.run(host='0.0.0.0', port=port)
 
