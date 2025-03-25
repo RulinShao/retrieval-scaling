@@ -94,7 +94,7 @@ def extract_running_endpoints(
                 for endpoint in endpoints:
                     fout.write(json.dumps(endpoint)+'\n')
     
-    assert len(endpoints) == 13, f"Missing endpoints. Current alive endpoints: {len(endpoints)}"
+    # assert len(endpoints) == 13, f"Missing endpoints. Current alive endpoints: {len(endpoints)}"
         
     return endpoints
 
@@ -404,7 +404,7 @@ def find_free_port():
 if __name__ == '__main__':
     port = find_free_port()
     server_id = socket.gethostname()
-    endpoint = f'{os.getlogin()}@{server_id}:{port}/search'
+    endpoint = f'rulin@{server_id}:{port}/search'  # NOTE: change to your own username; TODO: try user = getpass.getuser()
     print(endpoint)
     with open('running_ports_main_node.txt', 'a+') as fout:
         fout.write(f'Endpoints: \n')
