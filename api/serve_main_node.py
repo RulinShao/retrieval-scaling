@@ -90,11 +90,11 @@ def extract_running_endpoints(
         print(f"Number of endpoints after check: {num_endpoints_after_check}")
         
         if num_endpoints_after_check != num_endpoints_before_check and remove_invalid_endpoints_after_check:
-            with open('running_ports_massiveds_after_check.jsonl', 'w') as fout:
+            with open('running_ports_massiveds.jsonl', 'w') as fout:
                 for endpoint in endpoints:
                     fout.write(json.dumps(endpoint)+'\n')
     
-    # assert len(endpoints) == 13, f"Missing endpoints. Current alive endpoints: {len(endpoints)}"
+    assert len(endpoints) == 13, f"Missing endpoints. Current alive endpoints: {len(endpoints)}"
         
     return endpoints
 
@@ -303,6 +303,8 @@ def main_node_multithread_search(query, n_docs):
             all_responses = [future.result() for future in futures]
     except:
         try:
+            print(f"Main node search failed due to {e}, try to extract running endpoints again after 15 mins")
+            time.sleep(15*60)
             endpoints = extract_running_endpoints(check_endpoint_before_return=True, remove_invalid_endpoints_after_check=True)
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 futures = [executor.submit(fetch_endpoint, endpoint, json_data, headers) for endpoint in endpoints]

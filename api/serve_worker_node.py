@@ -8,6 +8,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import threading
 import queue
+import time
 import hydra
 from omegaconf import OmegaConf
 from hydra.core.global_hydra import GlobalHydra
@@ -114,15 +115,23 @@ def search():
             domains=request.json['domains'],
             n_docs=request.json['n_docs'],
         )
-        # Perform the search synchronously, but queue if another search is in progress
-        results = search_queue.search(item)
-        print(results)
-        return jsonify({
-            "message": f"Search completed for '{item.query}' from {item.domains}",
-            "query": item.query,
-            "n_docs": item.n_docs,
-            "results": results,
-        }), 200
+        # Perform the search synchronously with 60s timeout
+        try:
+            with threading.Timer(60.0, lambda: (_ for _ in ()).throw(TimeoutError('Search timed out after 60 seconds'))):
+                results = search_queue.search(item)
+                print(results)
+                return jsonify({
+                    "message": f"Search completed for '{item.query}' from {item.domains}",
+                    "query": item.query,
+                    "n_docs": item.n_docs,
+                    "results": results,
+                }), 200
+        except TimeoutError as e:
+            return jsonify({
+                "message": str(e),
+                "query": item.query,
+                "error": "timeout"
+            }), 408
     except Exception as e:
         tb_lines = traceback.format_exception(e.__class__, e, e.__traceback__)
         error_message = f"An error occurred: {str(e)}\n{''.join(tb_lines)}"

@@ -59,7 +59,7 @@ def embed_passages(args, passages, model, tokenizer):
                 if len(batch_text) == args.per_gpu_batch_size or k == len(passages) - 1:
                     
                     if "drama" in args.model_name_or_path:
-                        embeddings = model.encode_documents(tokenizer, batch_text)
+                        embeddings = model.encode_documents(tokenizer, batch_text, dim=768)  # TODO: change this to align with index.projection_size
                     else:
                         encoded_batch = tokenizer.batch_encode_plus(
                             batch_text,

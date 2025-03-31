@@ -72,7 +72,7 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
                 if len(batch_question) == args.per_gpu_batch_size or k == len(queries) - 1:
                     
                     if "drama" in model_name_or_path:
-                        output = model.encode_queries(batch_question, batch_text)
+                        output = model.encode_queries(batch_question, batch_text, dim=768)  # TODO: change this to align with index.projection_size
                     
                     else:
                         encoded_batch = tokenizer.batch_encode_plus(
