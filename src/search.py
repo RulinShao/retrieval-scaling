@@ -72,8 +72,9 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
                 if len(batch_question) == args.per_gpu_batch_size or k == len(queries) - 1:
                     
                     if "drama" in model_name_or_path:
-                        output = model.encode_queries(batch_question, batch_text, dim=768)  # TODO: change this to align with index.projection_size
-                    
+                        output = model.encode_queries(batch_question, batch_question, dim=768)  # TODO: change this to align with index.projection_size
+                    elif "ReasonIR" in model_name_or_path or "GRIT" in model_name_or_path:
+                        output = model.encode(batch_question, instruction="", batch_size=args.per_gpu_batch_size)
                     else:
                         encoded_batch = tokenizer.batch_encode_plus(
                             batch_question,
@@ -239,6 +240,10 @@ def search_dense_topk(cfg):
         elif "sentence-transformers" in model_name_or_path:
             query_tokenizer = None
             query_encoder = SentenceTransformer(model_name_or_path)
+        elif "ReasonIR" in model_name_or_path or "GRIT" in model_name_or_path:
+            from gritlm import GritLM
+            query_tokenizer = None
+            query_encoder = GritLM(model_name_or_path, torch_dtype="auto", mode="embedding")
         else:
             print(f"{model_name_or_path} is not supported!")
             raise AttributeError

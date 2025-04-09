@@ -60,6 +60,9 @@ def embed_passages(args, passages, model, tokenizer):
                     
                     if "drama" in args.model_name_or_path:
                         embeddings = model.encode_documents(tokenizer, batch_text, dim=768)  # TODO: change this to align with index.projection_size
+                    elif "ReasonIR" in args.model_name_or_path or "GRIT" in args.model_name_or_path:
+                        embeddings = model.encode(batch_text, instruction="", batch_size=args.per_gpu_batch_size)
+                        embeddings = torch.tensor(embeddings, device='cpu')
                     else:
                         encoded_batch = tokenizer.batch_encode_plus(
                             batch_text,
@@ -118,6 +121,10 @@ def generate_passage_embeddings(cfg):
             tokenizer_name_or_path = args.tokenizer if args.get('tokenizer', None) else args.model_name_or_path
             tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
             model = AutoModel.from_pretrained(args.model_name_or_path, trust_remote_code=True)
+        elif "ReasonIR" in args.model_name_or_path or "GRIT" in args.model_name_or_path:
+            from gritlm import GritLM
+            tokenizer = None
+            model = GritLM(args.model_name_or_path, torch_dtype="auto", mode="embedding")
         elif "sentence-transformers" in args.model_name_or_path:
             tokenizer = None
             model = SentenceTransformer(args.model_name_or_path)
