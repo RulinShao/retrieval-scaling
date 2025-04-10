@@ -37,6 +37,10 @@ class DatastoreAPI():
         elif "sentence-transformers" in model_name_or_path:
             query_tokenizer = None
             query_encoder = SentenceTransformer(model_name_or_path)
+        elif "ReasonIR" in model_name_or_path or "GRIT" in model_name_or_path:
+            from gritlm import GritLM
+            query_tokenizer = None
+            query_encoder = GritLM(model_name_or_path, torch_dtype="auto", mode="embedding")
         else:
             print(f"{model_name_or_path} is not supported!")
             raise AttributeError

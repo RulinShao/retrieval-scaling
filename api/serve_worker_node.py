@@ -32,8 +32,16 @@ def load_config():
     # Initialize Hydra and set the path to the config directory
     hydra.initialize(config_path="conf")
 
-    # Compose the configuration (this loads the configuration files and merges them)
-    cfg = hydra.compose(config_name="aws_h200")
+    # Get overrides from environment variables
+    overrides = []
+    for key, value in os.environ.items():
+        if key.startswith('HYDRA_OVERRIDE_'):
+            # Convert HYDRA_OVERRIDE_MODEL__DATASET to model.dataset
+            config_key = key.replace('HYDRA_OVERRIDE_', '').lower().replace('__', '.')
+            overrides.append(f"{config_key}={value}")
+
+    # Compose the configuration with overrides
+    cfg = hydra.compose(config_name="aws_h200", overrides=overrides)
 
     # Print or use the configuration as needed
     print(OmegaConf.to_yaml(cfg))
@@ -116,17 +124,20 @@ def search():
             n_docs=request.json['n_docs'],
         )
         # Perform the search synchronously with 60s timeout
+        timer = threading.Timer(60.0, lambda: (_ for _ in ()).throw(TimeoutError('Search timed out after 60 seconds')))
+        timer.start()
         try:
-            with threading.Timer(60.0, lambda: (_ for _ in ()).throw(TimeoutError('Search timed out after 60 seconds'))):
-                results = search_queue.search(item)
-                print(results)
-                return jsonify({
-                    "message": f"Search completed for '{item.query}' from {item.domains}",
-                    "query": item.query,
-                    "n_docs": item.n_docs,
-                    "results": results,
-                }), 200
+            results = search_queue.search(item)
+            timer.cancel()
+            print(results)
+            return jsonify({
+                "message": f"Search completed for '{item.query}' from {item.domains}",
+                "query": item.query,
+                "n_docs": item.n_docs,
+                "results": results,
+            }), 200
         except TimeoutError as e:
+            timer.cancel()
             return jsonify({
                 "message": str(e),
                 "query": item.query,

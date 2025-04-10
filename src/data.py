@@ -261,6 +261,8 @@ def split_data_into_chunks(text, chunk_sz, min_chunk_sz, keep_last, chunking_str
         from semantic_text_splitter import TextSplitter
         splitter = TextSplitter.from_tiktoken_model("gpt-3.5-turbo", chunk_sz)
         chunks = splitter.chunks(text)
+    elif chunking_strategy is None:
+        chunks = [text]
 
     return chunks
 
