@@ -1,6 +1,6 @@
 # Scaling Retrieval-Based Langauge Models with a Trillion-Token Datastore
 
-Code and data for paper "Scaling Retrieval-Based Langauge Models with a Trillion-Token Datastore".
+Code and data for paper "Scaling Retrieval-Based Langauge Models with a Trillion-Token Datastore" (NeurIPS 2024).
 
 [[Website](https://retrievalscaling.github.io)][[Paper](https://arxiv.org/abs/2407.12854)]
 
