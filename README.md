@@ -12,9 +12,11 @@ Code and data for paper "Scaling Retrieval-Based Langauge Models with a Trillion
 If you find our code, data, models, or the paper useful, please cite the paper:
 ```
 @article{shao2024scaling,
-  title={Scaling Retrieval-Based Language Models with a Trillion-Token Datastore},
-  author={Shao, Rulin and He, Jacqueline and Asai, Akari and Shi, Weijia and Dettmers, Tim and Min, Sewon and Zettlemoyer, Luke and Koh, Pang Wei},
-  journal={arXiv preprint arXiv:2407.12854},
+  title={Scaling retrieval-based language models with a trillion-token datastore},
+  author={Shao, Rulin and He, Jacqueline and Asai, Akari and Shi, Weijia and Dettmers, Tim and Min, Sewon and Zettlemoyer, Luke and Koh, Pang Wei W},
+  journal={Advances in Neural Information Processing Systems},
+  volume={37},
+  pages={91260--91299},
   year={2024}
 }
 ```
