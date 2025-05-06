@@ -22,7 +22,7 @@ from src.data import fast_load_jsonl_shard
 
 
 def embed_passages(args, passages, model, tokenizer):
-    if "sentence-transformers" in args.model_name_or_path:
+    if "sentence-transformers" in args.model_name_or_path or "e5" in args.model_name_or_path:
         allids, alltext = [], []
         for k, p in tqdm(enumerate(passages)):
             allids.append(p["id"])
@@ -125,7 +125,7 @@ def generate_passage_embeddings(cfg):
             from gritlm import GritLM
             tokenizer = None
             model = GritLM(args.model_name_or_path, torch_dtype="auto", mode="embedding")
-        elif "sentence-transformers" in args.model_name_or_path:
+        elif "sentence-transformers" in args.model_name_or_path or "e5" in args.model_name_or_path:
             tokenizer = None
             model = SentenceTransformer(args.model_name_or_path)
         else:

@@ -46,7 +46,7 @@ device = 'cuda' if torch.cuda.is_available()  else 'cpu'
 
 
 def embed_queries(args, queries, model, tokenizer, model_name_or_path):
-    if "sentence-transformers" in model_name_or_path:
+    if "sentence-transformers" in model_name_or_path or "e5" in model_name_or_path:
         all_question = []
         for k, q in enumerate(queries):
             if args.lowercase:
@@ -238,7 +238,7 @@ def search_dense_topk(cfg):
         elif "dragon" in model_name_or_path or "drama" in model_name_or_path:
             query_tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
             query_encoder = AutoModel.from_pretrained(model_name_or_path, trust_remote_code=True)
-        elif "sentence-transformers" in model_name_or_path:
+        elif "sentence-transformers" in model_name_or_path or "e5" in model_name_or_path:
             query_tokenizer = None
             query_encoder = SentenceTransformer(model_name_or_path)
         elif "ReasonIR" in model_name_or_path or "GRIT" in model_name_or_path:

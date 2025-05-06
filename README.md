@@ -27,13 +27,26 @@ This codebase contains:
 1. Easy development and evaluation for retrieval-based language models (LMs)---run all experiments with one YAML file ([Quick Start](#quick-start)).
 2. Our efficient MassiveDS pipeline for affordable datastore scaling study with retrieval-based LMs ([Advanced Usage](#advanced-usage)).
 3. A comprehensive evaluation suite for retrieval-based LMs ([Evaluation](#evaluation)| [RAG-Evaluation-Harnesses](https://github.com/RulinShao/RAG-evaluation-harnesses)).
+4. Single-line serving support for some of our prebuilt datastores.
 
 
 # Latest Update 🔥
+* [2025/05] We release [MassiveServe](https://github.com/RulinShao/massive-serve)---one command to download and serve a datastore---that's it 😎.
 * [2025/02] We updated the codebase to V1 with support for IVF-Flat and IVF-PQ efficient indices; distributed API serving with <30ms latency!
 * [2025/01] We support a new hashing-based passage loading method that could load the passage from disk by passage ID **without loading the full passages in RAM**, which will greatly reduce the memory requirement for large datastore serving. Set `datastore.use_passage_pos_id_map=true` to turn it on!
 * [2025/01] We now support semantic chunking which chunks the data based on semantic boundaries. Set `datastore.chunking_strategy="semantic"` to give it a try! It takes `datastore.chunk_size` as the maximum number of tokens it should accomodate. 
 * [2024/12] We added API serving codes with support for multiple index types, i.e., Flat and IVF_Flat in the current version. Find instructions in `api/` folder.
+
+
+## Serving Our Prebuilt Datastores
+We developed a tiny tool for serving our prebuilt datastores. To download and serve our datastores:
+```bash
+pip install massive-serve
+massive-serve serve --domain_name demo
+```
+We currently support the following domains:
+* wikipedia: `dpr_wiki_contriever`
+* demo: `demo`
 
 
 ## Installation
