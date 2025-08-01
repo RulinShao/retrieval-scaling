@@ -31,9 +31,9 @@ class Pes2oIVFPQDatastoreAPI():
         return {'pes2o IDs': pes2o_ids, 'scores': searched_scores, 'passages': searched_passages}
     
     def load_pes2o_index(self,):
-        index_path = '/gscratch/zlab/rulins/pes2o_v3_ivfpq_3M_4096_64.index'
+        index_path = '/gscratch/zlab/rulins/data/scaling_out/pes2o_v3/index/pes2o_v3_ivfpq_3M_4096_64.index'
         index = IVFPQIndexer(index_path)
-        meta_file = '/gscratch/zlab/rulins/pes2o_v3_ivfpq_3M_4096_64.meta.index'
+        meta_file = '/gscratch/zlab/rulins/data/scaling_out/pes2o_v3/index/pes2o_v3_ivfpq_3M_4096_64.meta.index'
         with open(meta_file, "rb") as reader:
             index_id_to_db_id = pickle.load(reader)
         return index, index_id_to_db_id

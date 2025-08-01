@@ -1,5 +1,9 @@
 # Serving a public API on Hyak
 
+```bash
+huggingface-cli download OpenSciLM/OpenScholar-DataStore-V3 --repo-type dataset --local-dir /gscratch/zlab/rulins/data/scaling_out/
+```
+
 #### Step 1. Run the serve script
 ```bash
 python serve2.py
