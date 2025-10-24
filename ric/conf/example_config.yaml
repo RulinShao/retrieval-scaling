@@ -23,15 +23,24 @@ model:
 datastore:
   domain: fineweb_edu_1m
   raw_data_path: raw_data/fineweb-edu-1m.jsonl  # pass a single jsonl file or a dir of jsonl files
+  raw_data_key: text
   chunk_size: 256  # chunk size in number of words
+  chunking_strategy: fixed_size  # support "fixed_size" or "semantic"
+  keep_raw_metadata: true
+  use_passage_pos_id_map: true  # enable efficient passage loading
+  datastore_root_dir: scaling_out
   
   embedding:
     raw_data_path: ${datastore.raw_data_path}
     shard_ids: [0]
     num_shards: 1
     chunk_size: ${datastore.chunk_size}
+    raw_data_key: ${datastore.raw_data_key}
+    chunking_strategy: ${datastore.chunking_strategy}
+    keep_raw_metadata: ${datastore.keep_raw_metadata}
+    use_passage_pos_id_map: ${datastore.use_passage_pos_id_map}
     keep_last_chunk: true
-    passages_dir: scaling_out/passages/${datastore.domain}/${datastore.embedding.num_shards}-shards
+    passages_dir: ${datastore.datastore_root_dir}/passages/${datastore.domain}/${datastore.embedding.num_shards}-shards
 
     per_gpu_batch_size: 512
     passage_maxlength: ${datastore.chunk_size}  # need to set to a larger num than chunk size
@@ -43,22 +52,29 @@ datastore:
     normalize_text: False
 
     prefix: "passages"
-    embedding_dir: scaling_out/embeddings/${model.datastore_encoder}/${datastore.domain}/${datastore.embedding.num_shards}-shards
+    embedding_dir: ${datastore.datastore_root_dir}/embeddings/${model.datastore_encoder}/${datastore.domain}/${datastore.embedding.num_shards}-shards
     use_saved_if_exists: true
 
   index:
     raw_data_path: ${datastore.raw_data_path}
     chunk_size: ${datastore.chunk_size}
+    raw_data_key: ${datastore.raw_data_key}
+    chunking_strategy: ${datastore.chunking_strategy}
+    keep_raw_metadata: ${datastore.keep_raw_metadata}
+    use_passage_pos_id_map: ${datastore.use_passage_pos_id_map}
     passages_embeddings: ${datastore.embedding.embedding_dir}/*.pkl
-    num_subsampled_embedding_files: 1    # Number of subsampled embeddings, use all if pass -1, not supported yet, assume use all embeddings in the dir
-    index_shard_ids: [[0]]  # idx of passages included in each index; [0, 1, 2] means build a single index over psg-0&1&2; [[0], [1,2]] means build 1 index for psg-0 and 1 index for psg-1&2.
+    num_subsampled_embedding_files: -1    # Number of subsampled embeddings, use all if pass -1, not supported yet, assume use all embeddings in the dir
+    index_shard_ids: [0]  # idx of passages included in each index; [0, 1, 2] means build a single index over psg-0&1&2
     save_or_load_index: True
     no_fp16: False
-    index_type: PQ    # PQ, PQIVF (PQ degrades to flat when n_subquantizers is 0)
+    index_type: IVFFlat    # Flat, IVFFlat, IVFPQ (PQ degrades to flat when n_subquantizers is 0)
+    sample_train_size: 100000
     indexing_batch_size: 1000000
     projection_size: 768
-    n_subquantizers: 0    # Number of subquantizer used for vector quantization, if 0 flat index is used
-    n_bits: 64    # Number of bits per subquantizer
+    probe: 128
+    ncentroids: 2048
+    n_subquantizers: 16    # Number of subquantizer used for vector quantization, if 0 flat index is used; introducing compression rate of embedding_dimension / n_subquantizers
+    n_bits: 8    # Number of bits per subquantizer, introducing compression rate of embedding_precision / n_bits
     overwrite: false
 
 
@@ -91,8 +107,9 @@ evaluation:
   concate_k: 3    # Number of retrieved passages for concatenation, 0 means LM-only
   max_retrieval_len: 1024
   calibration_out_dir: null
-  eval_output_dir: scaling_out/retrieved_results/${model.datastore_encoder}/${datastore.domain}_datastore-${datastore.chunk_size}_chunk_size-1of${datastore.embedding.num_shards}_shards/top_${evaluation.search.n_docs}
-  results_only_log_file: scaling_out/test_c4_ppl.log
+  index_postfix: ${datastore.index.index_type}_${datastore.index.sample_train_size}_${datastore.index.ncentroids}_${datastore.index.n_subquantizers}_${datastore.index.n_bits}
+  eval_output_dir: ${datastore.datastore_root_dir}/retrieved_results/${model.datastore_encoder}/${datastore.domain}_datastore-${datastore.chunk_size}_chunk_size-1of${datastore.embedding.num_shards}_shards-${evaluation.index_postfix}/top_${evaluation.search.n_docs}
+  results_only_log_file: ${datastore.datastore_root_dir}/test_c4_ppl.log
   debug_mode: false
   decontamination: false
   contamination_threshold: 32

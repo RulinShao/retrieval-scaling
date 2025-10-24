@@ -34,6 +34,7 @@ def fast_load_jsonl_shard(args, shard_index, return_all_passages=True):
     if not return_all_passages:
         assert use_passage_pos_id_map, f"You must set `use_passage_pos_id_map=True` to enable efficient passage loading!"
 
+    # Check the existance of processed data
     if use_passage_pos_id_map:
         passage_shard_save_path = os.path.join(args.passages_dir, f'raw_passages-{shard_index}-of-{num_shards}.jsonl')
         pos_map_save_path = os.path.join(args.passages_dir, 'passage_pos_id_map.pkl')
@@ -70,6 +71,7 @@ def fast_load_jsonl_shard(args, shard_index, return_all_passages=True):
                 passages = pickle.load(file)
             return passages
 
+    # Construct missing passages
     if not os.path.exists(raw_data_path):
         logging.info(f"{raw_data_path} does not exist")
         return
@@ -136,7 +138,6 @@ def fast_load_jsonl_shard(args, shard_index, return_all_passages=True):
                                 "shard_id": shard_index,
                                 "num_shards": num_shards,
                             })
-                        idx += 1
                         idx += 1
                 else:
                     break
@@ -260,6 +261,8 @@ def split_data_into_chunks(text, chunk_sz, min_chunk_sz, keep_last, chunking_str
         from semantic_text_splitter import TextSplitter
         splitter = TextSplitter.from_tiktoken_model("gpt-3.5-turbo", chunk_sz)
         chunks = splitter.chunks(text)
+    elif chunking_strategy is None:
+        chunks = [text]
 
     return chunks
 

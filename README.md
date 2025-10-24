@@ -1,6 +1,6 @@
 # Scaling Retrieval-Based Langauge Models with a Trillion-Token Datastore
 
-Code and data for paper "Scaling Retrieval-Based Langauge Models with a Trillion-Token Datastore".
+Code and data for paper "Scaling Retrieval-Based Langauge Models with a Trillion-Token Datastore" (NeurIPS 2024).
 
 [[Website](https://retrievalscaling.github.io)][[Paper](https://arxiv.org/abs/2407.12854)]
 
@@ -12,9 +12,11 @@ Code and data for paper "Scaling Retrieval-Based Langauge Models with a Trillion
 If you find our code, data, models, or the paper useful, please cite the paper:
 ```
 @article{shao2024scaling,
-  title={Scaling Retrieval-Based Language Models with a Trillion-Token Datastore},
-  author={Shao, Rulin and He, Jacqueline and Asai, Akari and Shi, Weijia and Dettmers, Tim and Min, Sewon and Zettlemoyer, Luke and Koh, Pang Wei},
-  journal={arXiv preprint arXiv:2407.12854},
+  title={Scaling retrieval-based language models with a trillion-token datastore},
+  author={Shao, Rulin and He, Jacqueline and Asai, Akari and Shi, Weijia and Dettmers, Tim and Min, Sewon and Zettlemoyer, Luke and Koh, Pang Wei W},
+  journal={Advances in Neural Information Processing Systems},
+  volume={37},
+  pages={91260--91299},
   year={2024}
 }
 ```
@@ -25,12 +27,28 @@ This codebase contains:
 1. Easy development and evaluation for retrieval-based language models (LMs)---run all experiments with one YAML file ([Quick Start](#quick-start)).
 2. Our efficient MassiveDS pipeline for affordable datastore scaling study with retrieval-based LMs ([Advanced Usage](#advanced-usage)).
 3. A comprehensive evaluation suite for retrieval-based LMs ([Evaluation](#evaluation)| [RAG-Evaluation-Harnesses](https://github.com/RulinShao/RAG-evaluation-harnesses)).
+4. Single-line serving support for some of our prebuilt datastores ([MassiveServe](https://github.com/RulinShao/massive-serve))---one command to download and serve a datastore: `pip install massive-serve && massive-serve serve --domain_name demo`.
 
 
 # Latest Update 🔥
+* [2025/05] We release [MassiveServe](https://github.com/RulinShao/massive-serve)---one command to download and serve a datastore---that's it 😎.
+* [2025/02] We updated the codebase to V1 with support for IVF-Flat and IVF-PQ efficient indices; distributed API serving with <30ms latency!
 * [2025/01] We support a new hashing-based passage loading method that could load the passage from disk by passage ID **without loading the full passages in RAM**, which will greatly reduce the memory requirement for large datastore serving. Set `datastore.use_passage_pos_id_map=true` to turn it on!
 * [2025/01] We now support semantic chunking which chunks the data based on semantic boundaries. Set `datastore.chunking_strategy="semantic"` to give it a try! It takes `datastore.chunk_size` as the maximum number of tokens it should accomodate. 
 * [2024/12] We added API serving codes with support for multiple index types, i.e., Flat and IVF_Flat in the current version. Find instructions in `api/` folder.
+
+
+## MassiveServe
+We developed a tiny tool for serving our prebuilt datastores. To download and serve our datastores:
+```bash
+pip install massive-serve
+massive-serve serve --domain_name demo
+```
+We currently support the following domains:
+* wikipedia: `dpr_wiki_contriever`
+* demo: `demo`
+
+More coming soon!
 
 
 ## Installation

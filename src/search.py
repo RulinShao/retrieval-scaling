@@ -32,7 +32,7 @@ from contriever.src.evaluation import calculate_matches
 import contriever.src.normalize_text
 
 from src.data import load_eval_data
-from src.index import Indexer, get_index_dir_and_passage_paths, get_index_passages_and_id_map, get_bm25_index_dir
+from src.index import Indexer, get_bm25_index_dir
 from src.decontamination import check_below_lexical_overlap_threshold
 try:
     from utils.deduplication import remove_duplicates_with_minhash, multiprocess_deduplication
@@ -46,7 +46,7 @@ device = 'cuda' if torch.cuda.is_available()  else 'cpu'
 
 
 def embed_queries(args, queries, model, tokenizer, model_name_or_path):
-    if "sentence-transformers" in model_name_or_path:
+    if "sentence-transformers" in model_name_or_path or "e5" in model_name_or_path:
         all_question = []
         for k, q in enumerate(queries):
             if args.lowercase:
@@ -70,19 +70,26 @@ def embed_queries(args, queries, model, tokenizer, model_name_or_path):
                 batch_question.append(q)
 
                 if len(batch_question) == args.per_gpu_batch_size or k == len(queries) - 1:
+                    
+                    if "drama" in model_name_or_path:
+                        output = model.encode_queries(batch_question, batch_question, dim=768)  # TODO: change this to align with index.projection_size
+                    elif "ReasonIR" in model_name_or_path or "GRIT" in model_name_or_path:
+                        output = model.encode(batch_question, instruction="", batch_size=args.per_gpu_batch_size)
+                        output = torch.tensor(output, device='cpu')
+                    else:
+                        encoded_batch = tokenizer.batch_encode_plus(
+                            batch_question,
+                            return_tensors="pt",
+                            max_length=args.question_maxlength,
+                            padding=True,
+                            truncation=True,
+                        )
 
-                    encoded_batch = tokenizer.batch_encode_plus(
-                        batch_question,
-                        return_tensors="pt",
-                        max_length=args.question_maxlength,
-                        padding=True,
-                        truncation=True,
-                    )
-
-                    encoded_batch = {k: v.to(device) for k, v in encoded_batch.items()}
-                    output = model(**encoded_batch)
-                    if "contriever" not in model_name_or_path:
-                        output = output.last_hidden_state[:, 0, :]
+                        encoded_batch = {k: v.to(device) for k, v in encoded_batch.items()}
+                        output = model(**encoded_batch)
+                        if "contriever" not in model_name_or_path:
+                            output = output.last_hidden_state[:, 0, :]
+                    
                     embeddings.append(output.cpu())
 
                     batch_question = []
@@ -113,25 +120,21 @@ def validate(data, workers_num):
     return match_stats.questions_doc_hits
 
 
-def add_passages(data, passages, top_passages_and_scores, valid_query_idx, domain=None):
+def add_passages_to_eval_data(data, passages, scores, db_ids, valid_query_idx, domain=None):
     # add passages to original data
-    assert len(valid_query_idx) == len(top_passages_and_scores)
+    assert len(valid_query_idx) == len(passages)
     idx = 0
     for i, d in enumerate(data):
         if i in valid_query_idx:
-            results_and_scores = top_passages_and_scores[idx]
-            docs = [passages[doc_id] for doc_id in results_and_scores[0]]
-            next_docs = [passages[str(int(doc_id)+1)] if int(doc_id)+1 < len(passages) else passages[doc_id] for doc_id in results_and_scores[0]]
-            scores = [str(score) for score in results_and_scores[1]]
-            ctxs_num = len(docs)
+            ex_scores = scores[idx]
+            ex_scores = [str(score) for score in scores[idx]]
+            ctxs_num = len(passages[0])
             d["ctxs"] = [
                 {
-                    "id": results_and_scores[0][c],
+                    "id": db_ids[idx][c],
                     "source": domain,
-                    # "retrieval title": docs[c]["title"],
-                    "retrieval text": docs[c]["text"],
-                    "retrieval next text": next_docs[c]["text"],
-                    "retrieval score": scores[c],
+                    "retrieval text": passages[idx][c],
+                    "retrieval score": ex_scores[c],
                 }
                 for c in range(ctxs_num)
             ]
@@ -232,12 +235,16 @@ def search_dense_topk(cfg):
         tokenizer_name_or_path = cfg.model.query_tokenizer
         if "contriever" in model_name_or_path:
             query_encoder, query_tokenizer, _ = contriever.src.contriever.load_retriever(model_name_or_path)
-        elif "dragon" in model_name_or_path:
+        elif "dragon" in model_name_or_path or "drama" in model_name_or_path:
             query_tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
-            query_encoder = AutoModel.from_pretrained(model_name_or_path)
-        elif "sentence-transformers" in model_name_or_path:
+            query_encoder = AutoModel.from_pretrained(model_name_or_path, trust_remote_code=True)
+        elif "sentence-transformers" in model_name_or_path or "e5" in model_name_or_path:
             query_tokenizer = None
             query_encoder = SentenceTransformer(model_name_or_path)
+        elif "ReasonIR" in model_name_or_path or "GRIT" in model_name_or_path:
+            from gritlm import GritLM
+            query_tokenizer = None
+            query_encoder = GritLM(model_name_or_path, torch_dtype="auto", mode="embedding")
         else:
             print(f"{model_name_or_path} is not supported!")
             raise AttributeError
@@ -250,10 +257,6 @@ def search_dense_topk(cfg):
         # load eval data
         data = load_eval_data(cfg)
         
-        # if eval_args.data.num_eval_samples is not None:
-        #     random.seed(eval_args.data.seed)
-        #     data = random.sample(data, int(eval_args.data.num_eval_samples))
-
         queries = []
         valid_query_idx = []
         for idx, ex in enumerate(data):
@@ -282,23 +285,16 @@ def search_dense_topk(cfg):
             else:
                 copied_data = copy.deepcopy(data)
 
-                index_dir, _ = get_index_dir_and_passage_paths(cfg, index_shard_ids)
-                index = Indexer(index_args.projection_size, index_args.n_subquantizers, index_args.n_bits)
-                index.deserialize_from(index_dir)
-
-                # load passages and id mapping corresponding to the index
-                passages, passage_id_map = get_index_passages_and_id_map(cfg, index_shard_ids)
-                assert len(passages) == index.index.ntotal, f"number of documents {len(passages)} and number of embeddings {index.index.ntotal} mismatch"
-
-                # get top k results
-                start_time_retrieval = time.time()
-
-                top_ids_and_scores = index.search_knn(questions_embedding, eval_args.search.n_docs)
-                logging.info(f"Search time: {time.time()-start_time_retrieval:.1f} s.")
-
+                # TODO: load index and perform search
+                logging.info("Loading or constructing the datastore...")
+                index = Indexer(cfg)
+                
+                logging.info("Searching for the queries...")
+                all_scores, all_passages, db_ids = index.search(questions_embedding, eval_args.search.n_docs)
+                
                 # todo: double check valid_query_idx
                 logging.info(f"Adding documents to eval data...")
-                add_passages(copied_data, passage_id_map, top_ids_and_scores, valid_query_idx, domain=ds_domain)
+                add_passages_to_eval_data(copied_data, all_passages, all_scores, db_ids, valid_query_idx, domain=ds_domain)
                 
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
                 safe_write_jsonl(copied_data, output_path)
@@ -793,22 +789,7 @@ def search_sparse_topk(cfg):
         for ex in tqdm(data):
             query = ex["raw_query"]
             if query:
-                hits = searcher.search(query, cfg.evaluation.search.n_docs)  
-                # ctxs = []
-                # for i in range(len(hits)):
-                #     raw = searcher.doc(hits[i].docid).raw()
-                #     ex = json.loads(raw)
-                #     ctxs.append(
-                #         {
-                #             "id": int(ex["id"]),
-                #             "retrieval text": ex["contents"],
-                #             "retrieval score": hits[i].score,
-                #         } for i in range(len(hits))
-                #     )
-                # if len(hits) < cfg.evaluation.search.n_docs:  # will there be any case where len(hits) < n_docs?
-                #     dummy_ctx = {"id": None, "retrieval text": '', "retrieval score": float('-inf')}
-                #     ctxs += [dummy_ctx] * (cfg.evaluation.search.n_docs - len(hits))
-                #     print(f"The number of retrieved documents is less than n_docs: {len(hits)} < {cfg.evaluation.search.n_docs}")
+                hits = searcher.search(query, cfg.evaluation.search.n_docs)
                 ex["ctxs"] = [
                     {
                         # "id": int(ex["id"]),

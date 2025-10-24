@@ -18,7 +18,27 @@ from omegaconf import OmegaConf
 from hydra.core.global_hydra import GlobalHydra
 
 
-def extract_running_endpoints(file_path='/checkpoint/amaia/explore/rulin/retrieval-scaling/running_ports.txt'):
+def check_endpoint(endpoint):
+    url = f"http://{endpoint}"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "query": "Where was Marie Curie born?",
+        "n_docs": 1,
+        "domains": "MassiveDS"
+    }
+    try:
+        # Set a short timeout to avoid hanging
+        response = requests.post(url, json=data, headers=headers, timeout=5)
+        return response.status_code == 200
+    except (requests.exceptions.RequestException, requests.exceptions.Timeout):
+        return False
+
+
+def extract_running_endpoints(
+    file_path='running_ports_massiveds.jsonl',
+    check_endpoint_before_return=False,
+    remove_invalid_endpoints_after_check=False,
+):
     """
     Extracts information from a text file and returns it as a list.
     Args:
@@ -26,42 +46,122 @@ def extract_running_endpoints(file_path='/checkpoint/amaia/explore/rulin/retriev
     Returns:
         list: A list of extracted information.
     """
-    with open(file_path, 'r') as file:
-        lines = file.readlines()
     endpoints = []
-    for line in lines:
-        if '@' in line:
-            endpoints.append(line.strip())
+    with open(file_path, 'r') as file:
+        for line in file:
+            info = json.loads(line)
+            endpoints.append(info['endpoint'])
+    
+    # Create a dictionary to track unique domain_name + chunk_id combinations
+    unique_endpoints = {}
+    with open(file_path, 'r') as file:
+        for line in file:
+            info = json.loads(line)
+            key = (info['domain_name'], info['chunk_id'])
+            
+            # If we haven't seen this combination before, add it
+            if key not in unique_endpoints:
+                unique_endpoints[key] = info['endpoint']
+            # If we have seen it, keep the valid endpoint
+            else:
+                # Check both endpoints and keep the valid one
+                old_endpoint = unique_endpoints[key]
+                new_endpoint = info['endpoint']
+                
+                old_valid = check_endpoint(old_endpoint)
+                new_valid = check_endpoint(new_endpoint)
+                
+                if new_valid and not old_valid:
+                    unique_endpoints[key] = new_endpoint
+
+    # Update endpoints list with deduplicated values
+    endpoints = list(unique_endpoints.values())
+
+    num_endpoints_before_check = len(endpoints)
+    print(f"Number of endpoints before check: {num_endpoints_before_check}")
+    if check_endpoint_before_return:
+        new_endpoints = []
+        for endpoint in endpoints:
+            if check_endpoint(endpoint):
+                new_endpoints.append(endpoint)
+        endpoints = new_endpoints
+        
+        num_endpoints_after_check = len(endpoints)
+        print(f"Number of endpoints after check: {num_endpoints_after_check}")
+        
+        if num_endpoints_after_check != num_endpoints_before_check and remove_invalid_endpoints_after_check:
+            with open('running_ports_massiveds.jsonl', 'w') as fout:
+                for endpoint in endpoints:
+                    fout.write(json.dumps(endpoint)+'\n')
+    
+    assert len(endpoints) == 13, f"Missing endpoints. Current alive endpoints: {len(endpoints)}"
+        
     return endpoints
 
+
+def test_extract_running_endpoints():
+    endpoints = extract_running_endpoints(check_endpoint_before_return=True)
+    print(endpoints)
+    for i, endpoint in enumerate(endpoints):
+        print(f"{i}: {endpoint}")
 
 
 def rerank_elements(element_list, k=-1):
     """
     Reranks a list of elements based on their scores in descending order.
+    Handles multiple batch sizes (bs>1).
+    
     Args:
         element_list (list): A list of elements, where each element contains 'IDs', 'passages', and 'scores'.
+        k (int): Maximum number of results to return per batch. If -1, return all.
+        
     Returns:
-        dict: The reranked element.
+        dict: The reranked elements, with each batch maintained separately.
     """
-    # Concatenate the results according to the keys
-    concatenated_element = {
-        'ID': [],
-        'passage': [],
-        'score': []
-    }
-    for element in element_list:
-        for i in range(len(element['IDs'][0])):
-            concatenated_element['ID'].append(element['IDs'][0][i])
-            concatenated_element['passage'].append(element['passages'][0][i])
-            concatenated_element['score'].append(element['scores'][0][i])
-    # Rerank the values based on the scores in descending order
-    sorted_indices = sorted(range(len(concatenated_element['score'])), key=lambda k: concatenated_element['score'][k], reverse=True)
+    # Create a new structure that preserves the batch dimension
+    batch_size = max(len(element['scores']) for element in element_list)
     reranked_element = {
-        'IDs': [[concatenated_element['ID'][i] for i in sorted_indices][:k]],
-        'passages': [[concatenated_element['passage'][i] for i in sorted_indices][:k]],
-        'scores': [[concatenated_element['score'][i] for i in sorted_indices][:k]]
+        'IDs': [[] for _ in range(batch_size)],
+        'passages': [[] for _ in range(batch_size)],
+        'scores': [[] for _ in range(batch_size)]
     }
+    
+    # Process each batch separately
+    for batch_idx in range(batch_size):
+        # Concatenate the results for this batch
+        concatenated_batch = {
+            'ID': [],
+            'passage': [],
+            'score': []
+        }
+        
+        # Collect items from all elements for this batch index
+        for element in element_list:
+            # Skip if this element doesn't have data for this batch index
+            if batch_idx >= len(element['scores']):
+                continue
+                
+            for i in range(len(element['IDs'][batch_idx])):
+                concatenated_batch['ID'].append(element['IDs'][batch_idx][i])
+                concatenated_batch['passage'].append(element['passages'][batch_idx][i])
+                concatenated_batch['score'].append(element['scores'][batch_idx][i])
+        
+        # Rerank based on scores in descending order for this batch
+        sorted_indices = sorted(
+            range(len(concatenated_batch['score'])), 
+            key=lambda i: concatenated_batch['score'][i], 
+            reverse=True
+        )
+        
+        # Apply k limit if specified
+        if k > 0:
+            sorted_indices = sorted_indices[:k]
+            
+        # Add the sorted items for this batch
+        reranked_element['IDs'][batch_idx] = [concatenated_batch['ID'][i] for i in sorted_indices]
+        reranked_element['passages'][batch_idx] = [concatenated_batch['passage'][i] for i in sorted_indices]
+        reranked_element['scores'][batch_idx] = [concatenated_batch['score'][i] for i in sorted_indices]
+    
     return reranked_element
 
 
@@ -195,11 +295,23 @@ def main_node_multithread_search(query, n_docs):
         "domains": "rpj_c4 (nprobes=128)"
     }
     headers = {"Content-Type": "application/json"}
-    endpoints = extract_running_endpoints()
-    print(endpoints)
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(fetch_endpoint, endpoint, json_data, headers) for endpoint in endpoints]
-        all_responses = [future.result() for future in futures]
+    
+    try:
+        endpoints = extract_running_endpoints()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(fetch_endpoint, endpoint, json_data, headers) for endpoint in endpoints]
+            all_responses = [future.result() for future in futures]
+    except:
+        try:
+            print(f"Main node search failed due to {e}, try to extract running endpoints again after 15 mins")
+            time.sleep(15*60)
+            endpoints = extract_running_endpoints(check_endpoint_before_return=True, remove_invalid_endpoints_after_check=True)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(fetch_endpoint, endpoint, json_data, headers) for endpoint in endpoints]
+                all_responses = [future.result() for future in futures]
+        except Exception as e:
+            print(f"Error: {e}")
+            return {'Error': e}
     
     print(f"Searched from {len(all_responses)} shards.")
     sorted_elements = rerank_elements(all_responses, k=n_docs)
@@ -212,24 +324,16 @@ def main_node_multithread_search(query, n_docs):
 
 
 class SearchQueue:
-    def __init__(self, log_queries=True):
+    def __init__(self,):
         self.queue = queue.Queue()
         self.lock = threading.Lock()
         self.current_search = None
         self.cfg = load_config()
-
-        self.log_queries = log_queries
-        self.query_log = '/checkpoint/amaia/explore/rulin/api_query_cache/2024_11_14_queries.jsonl'
     
     def search(self, item):
         with self.lock:
             if self.current_search is None:
                 self.current_search = item
-                if self.log_queries:
-                    now = datetime.datetime.now()
-                    formatted_time = now.strftime('%Y-%m-%d %H:%M:%S')
-                    with open(self.query_log, 'a+') as fin:
-                        fin.write(json.dumps({'time': formatted_time, 'query': item.query})+'\n')
                 results = main_node_multithread_search(item.query, item.n_docs)
                 self.current_search = None
                 return results
@@ -302,8 +406,12 @@ def find_free_port():
 if __name__ == '__main__':
     port = find_free_port()
     server_id = socket.gethostname()
-    endpoint = f'rulin@{server_id}:{port}/search'
+    endpoint = f'rulin@{server_id}:{port}/search'  # NOTE: change to your own username; TODO: try user = getpass.getuser()
     print(endpoint)
+    with open('running_ports_main_node.txt', 'a+') as fout:
+        fout.write(f'Endpoints: \n')
+        fout.write(endpoint)
+        fout.write('\n')
     app.run(host='0.0.0.0', port=port)
     
-    
+    # test_extract_running_endpoints()

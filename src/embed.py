@@ -22,7 +22,7 @@ from src.data import fast_load_jsonl_shard
 
 
 def embed_passages(args, passages, model, tokenizer):
-    if "sentence-transformers" in args.model_name_or_path:
+    if "sentence-transformers" in args.model_name_or_path or "e5" in args.model_name_or_path:
         allids, alltext = [], []
         for k, p in tqdm(enumerate(passages)):
             allids.append(p["id"])
@@ -57,20 +57,26 @@ def embed_passages(args, passages, model, tokenizer):
                 batch_text.append(text)
 
                 if len(batch_text) == args.per_gpu_batch_size or k == len(passages) - 1:
+                    
+                    if "drama" in args.model_name_or_path:
+                        embeddings = model.encode_documents(tokenizer, batch_text, dim=768)  # TODO: change this to align with index.projection_size
+                    elif "ReasonIR" in args.model_name_or_path or "GRIT" in args.model_name_or_path:
+                        embeddings = model.encode(batch_text, instruction="", batch_size=args.per_gpu_batch_size)
+                        embeddings = torch.tensor(embeddings, device='cpu')
+                    else:
+                        encoded_batch = tokenizer.batch_encode_plus(
+                            batch_text,
+                            return_tensors="pt",
+                            max_length=args.passage_maxlength,
+                            padding=True,
+                            truncation=True,
+                        )
 
-                    encoded_batch = tokenizer.batch_encode_plus(
-                        batch_text,
-                        return_tensors="pt",
-                        max_length=args.passage_maxlength,
-                        padding=True,
-                        truncation=True,
-                    )
-
-                    encoded_batch = {k: v.cuda() for k, v in encoded_batch.items()}
-                    embeddings = model(**encoded_batch)  # shape: (per_gpu_batch_size, hidden_size)
-                    if "contriever" not in args.model_name_or_path:
-                        # assume in hf form
-                        embeddings = embeddings.last_hidden_state[:, 0, :]
+                        encoded_batch = {k: v.cuda() for k, v in encoded_batch.items()}
+                        embeddings = model(**encoded_batch)  # shape: (per_gpu_batch_size, hidden_size)
+                        if "contriever" not in args.model_name_or_path:
+                            # assume in hf form
+                            embeddings = embeddings.last_hidden_state[:, 0, :]
 
                     embeddings = embeddings.cpu()
                     
@@ -111,11 +117,15 @@ def generate_passage_embeddings(cfg):
         logging.info(f"Loading retriever model from {args.model_name_or_path}...")
         if "contriever" in args.model_name_or_path:
             model, tokenizer, _ = contriever.src.contriever.load_retriever(args.model_name_or_path)
-        elif "dragon" in args.model_name_or_path:
+        elif "dragon" in args.model_name_or_path or "drama" in args.model_name_or_path:
             tokenizer_name_or_path = args.tokenizer if args.get('tokenizer', None) else args.model_name_or_path
             tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
-            model = AutoModel.from_pretrained(args.model_name_or_path)
-        elif "sentence-transformers" in args.model_name_or_path:
+            model = AutoModel.from_pretrained(args.model_name_or_path, trust_remote_code=True)
+        elif "ReasonIR" in args.model_name_or_path or "GRIT" in args.model_name_or_path:
+            from gritlm import GritLM
+            tokenizer = None
+            model = GritLM(args.model_name_or_path, torch_dtype="auto", mode="embedding")
+        elif "sentence-transformers" in args.model_name_or_path or "e5" in args.model_name_or_path:
             tokenizer = None
             model = SentenceTransformer(args.model_name_or_path)
         else:
