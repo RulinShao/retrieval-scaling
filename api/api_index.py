@@ -4,6 +4,7 @@ import json
 from omegaconf.omegaconf import OmegaConf
 import contriever.src.contriever
 from transformers import AutoTokenizer, AutoModel
+from sentence_transformers import SentenceTransformer
 import hydra
 import pickle
 import json
@@ -34,7 +35,7 @@ class DatastoreAPI():
         elif "dragon" in model_name_or_path or "drama" in model_name_or_path:
             query_tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
             query_encoder = AutoModel.from_pretrained(model_name_or_path, trust_remote_code=True)
-        elif "sentence-transformers" in model_name_or_path or "e5" in model_name_or_path:
+        elif "sentence-transformers" in model_name_or_path or "e5" in model_name_or_path or "Qwen3" in model_name_or_path:
             query_tokenizer = None
             query_encoder = SentenceTransformer(model_name_or_path)
         elif "ReasonIR" in model_name_or_path or "GRIT" in model_name_or_path:
@@ -72,7 +73,7 @@ def get_datastore(cfg, shard_id=None):
     return ds
 
 
-@hydra.main(config_path="conf", config_name="aws_h200")
+@hydra.main(config_path="conf", config_name="a100")
 def main(cfg):
     get_datastore(cfg, 0)
 
